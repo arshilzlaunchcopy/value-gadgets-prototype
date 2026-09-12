@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { getPayment } from "@/lib/integrations/payment";
+import { notifyConfirmed } from "@/lib/orders/create";
 import { appendOrderEvent, transitionOrder } from "@/lib/orders/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -76,7 +77,8 @@ export async function processIpn(raw: Record<string, unknown>): Promise<IpnOutco
   const reasons: string[] = [];
   if (validation.status !== "VALID" && validation.status !== "VALIDATED") reasons.push(`validation status ${validation.status}`);
   if (validation.tranId !== ipn.tran_id) reasons.push("tran_id mismatch between IPN and validation");
-  if (validation.currency !== "BDT") reasons.push(`currency ${validation.currency} is not BDT`);
+  if (validation.currency !== "BDT") reasons.push(`validated currency ${validation.currency} is not BDT`);
+  if (ipn.currency.toUpperCase() !== "BDT") reasons.push(`IPN currency ${ipn.currency} is not BDT`);
   if (Math.round(validation.amountBdt) !== order.total_bdt) reasons.push(`validated amount ${validation.amountBdt} != order total ${order.total_bdt}`);
   if (Math.round(ipn.amount) !== order.total_bdt) reasons.push(`IPN amount ${ipn.amount} != order total ${order.total_bdt}`);
   if (reasons.length) return reject(order.id, txn.id, reasons.join("; "));
@@ -94,10 +96,56 @@ export async function processIpn(raw: Record<string, unknown>): Promise<IpnOutco
   await admin.from("orders").update({ payment_status: "paid" }).eq("id", order.id);
   if (order.status === "pending_payment" || order.status === "awaiting_advance") {
     await transitionOrder(order.id, "confirmed", { eventType: "payment_validated", note: `Payment ${ipn.tran_id} validated: ৳${order.total_bdt}` });
+    const { data: o } = await admin.from("orders").select("order_number, customer_phone").eq("id", order.id).single();
+    if (o) await notifyConfirmed(order.id, o.order_number, order.total_bdt, o.customer_phone).catch((e) => console.warn("[ipn] confirmation SMS failed:", e));
   } else {
     await appendOrderEvent(order.id, "payment_validated", { note: `Payment ${ipn.tran_id} validated` });
   }
   return { code: 200, result: "paid" };
+}
+
+/**
+ * Reconciliation (BUILD_PROMPT §9 "IPN never arriving"): for initiated
+ * transactions older than `olderThanMinutes`, ask the gateway. VALID -> run the
+ * exact same validation path as an IPN; FAILED/CANCELLED -> mark failed;
+ * PENDING/unknown -> leave for the next run.
+ */
+export async function reconcilePendingPayments(olderThanMinutes = 30, limit = 50) {
+  const admin = createAdminClient();
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000).toISOString();
+  const { data: txns } = await admin
+    .from("payment_transactions")
+    .select("id, gateway_txn_id, order_id, amount_bdt, currency, created_at, orders(payment_status, order_number)")
+    .eq("status", "initiated")
+    .lt("created_at", cutoff)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  const gateway = getPayment();
+  const results: Array<{ txn: string; action: string }> = [];
+  for (const t of txns ?? []) {
+    if (!t.gateway_txn_id) continue;
+    const order = t.orders as { payment_status: string; order_number: string } | null;
+    if (!order || order.payment_status === "paid") continue;
+    let lookup;
+    try {
+      lookup = await gateway.lookupTransaction(t.gateway_txn_id);
+    } catch (e) {
+      results.push({ txn: t.gateway_txn_id, action: `lookup failed: ${e instanceof Error ? e.message : e}` });
+      continue;
+    }
+    if (lookup.status === "VALID" || lookup.status === "VALIDATED") {
+      const outcome = await processIpn({ tran_id: t.gateway_txn_id, val_id: lookup.valId ?? "", amount: String(lookup.amountBdt ?? t.amount_bdt), currency: lookup.currency ?? t.currency, status: "VALID", _source: "reconcile" });
+      results.push({ txn: t.gateway_txn_id, action: `reconciled: ${outcome.result}` });
+    } else if (lookup.status === "FAILED" || lookup.status === "CANCELLED" || lookup.status === "EXPIRED" || !lookup.found) {
+      await admin.from("payment_transactions").update({ status: "failed", raw_validation_response: (lookup.raw ?? lookup) as never }).eq("id", t.id);
+      await admin.from("orders").update({ payment_status: "failed" }).eq("id", t.order_id);
+      await appendOrderEvent(t.order_id, "payment_reconciled_failed", { note: `Gateway reports ${lookup.found ? lookup.status : "unknown transaction"} for ${t.gateway_txn_id}; customer may retry` });
+      results.push({ txn: t.gateway_txn_id, action: "marked failed" });
+    } else {
+      results.push({ txn: t.gateway_txn_id, action: "still pending" });
+    }
+  }
+  return { checked: txns?.length ?? 0, results };
 }
 
 async function reject(orderId: string, txnId: string, reason: string): Promise<IpnOutcome> {

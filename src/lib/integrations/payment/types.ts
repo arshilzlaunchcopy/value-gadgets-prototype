@@ -37,10 +37,21 @@ export interface RefundResult {
  * PaymentAdapter (BUILD_PROMPT_PART3 §20.2, BUILD_PROMPT §9).
  * Application code calls getPayment() and never a concrete class.
  */
+export interface LookupResult {
+  found: boolean;
+  status: ValidationStatus | "PENDING";
+  valId?: string;
+  amountBdt?: number;
+  currency?: string;
+  raw?: unknown;
+}
+
 export interface PaymentAdapter {
   readonly name: string;
   readonly isMock: boolean;
   createSession(order: Order): Promise<PaymentSession>;
   validate(valId: string): Promise<ValidationResult>;
   refund(txnId: string, amountBdt: number, reason?: string): Promise<RefundResult>;
+  /** Reconciliation: what does the gateway know about this tran_id? (BUILD_PROMPT §9, "IPN never arriving") */
+  lookupTransaction(txnId: string): Promise<LookupResult>;
 }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Order, PaymentAdapter, PaymentSession, RefundResult, ValidationResult } from "./types";
+import type { LookupResult, Order, PaymentAdapter, PaymentSession, RefundResult, ValidationResult } from "./types";
 
 export interface SslCommerzConfig {
   storeId: string;
@@ -34,5 +34,10 @@ export class SslCommerzAdapter implements PaymentAdapter {
   /** GET https://{host}/validator/api/merchantTransIDvalidationAPI.php?refund_amount=... */
   async refund(_txnId: string, _amountBdt: number, _reason?: string): Promise<RefundResult> {
     throw new Error("SslCommerzAdapter.refund not implemented");
+  }
+
+  /** GET https://{host}/validator/api/merchantTransIDvalidationAPI.php?tran_id=... */
+  async lookupTransaction(_txnId: string): Promise<LookupResult> {
+    throw new Error("SslCommerzAdapter.lookupTransaction not implemented");
   }
 }

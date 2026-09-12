@@ -38,6 +38,12 @@ export async function completeGateway(formData: FormData): Promise<void> {
     result = out.result;
   }
 
-  const q = new URLSearchParams({ status: result, order: orderNumber ?? "", txn });
-  redirect(`/demo/gateway/result?${q.toString()}`);
+  // Like SSLCommerz: send the shopper back through success_url / fail_url / cancel_url.
+  // Those routes are display-only; the confirmation page reads payment state from the DB.
+  const route = outcome === "success" ? "success" : outcome === "failed" ? "fail" : "cancel";
+  if (!orderNumber) {
+    const q = new URLSearchParams({ status: result, order: "", txn });
+    redirect(`/demo/gateway/result?${q.toString()}`);
+  }
+  redirect(`/api/payment/${route}?tran_id=${encodeURIComponent(txn)}`);
 }

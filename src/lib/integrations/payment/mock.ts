@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Order, PaymentAdapter, PaymentSession, RefundResult, ValidationResult } from "./types";
+import type { LookupResult, Order, PaymentAdapter, PaymentSession, RefundResult, ValidationResult } from "./types";
 
 export const MOCK_GATEWAY = "mock";
 
@@ -84,6 +84,18 @@ export class MockPaymentAdapter implements PaymentAdapter {
     return { ok: true, refundRef, raw: { reason, amountBdt } };
   }
 
+  async lookupTransaction(txnId: string): Promise<LookupResult> {
+    const { data: txn } = await createAdminClient()
+      .from("payment_transactions")
+      .select("status, val_id, amount_bdt, currency")
+      .eq("gateway", MOCK_GATEWAY)
+      .eq("gateway_txn_id", txnId)
+      .maybeSingle();
+    if (!txn) return { found: false, status: "INVALID" };
+    const status: LookupResult["status"] = txn.status === "success" || txn.status === "validated" ? "VALID" : txn.status === "initiated" ? "PENDING" : txn.status === "cancelled" ? "CANCELLED" : "FAILED";
+    return { found: true, status, valId: txn.val_id ?? undefined, amountBdt: txn.amount_bdt, currency: txn.currency, raw: { source: "mock-gateway", recorded_status: txn.status } };
+  }
+
   /**
    * Called by the fake gateway page. Records what the "bank" did and returns
    * the SSLCommerz-shaped IPN payload the caller should POST to /api/payment/ipn.
@@ -96,22 +108,32 @@ export class MockPaymentAdapter implements PaymentAdapter {
     const admin = createAdminClient();
     const { data: txn } = await admin
       .from("payment_transactions")
-      .select("id, order_id, amount_bdt, currency, status, orders(order_number)")
+      .select("id, order_id, amount_bdt, currency, status, val_id, bank_txn_id, card_type, card_issuer, orders(order_number)")
       .eq("gateway", MOCK_GATEWAY)
       .eq("gateway_txn_id", txnId)
       .maybeSingle();
     if (!txn) throw new Error("Unknown mock transaction");
 
-    const valId = outcome === "success" ? `VAL-${randomBytes(6).toString("hex").toUpperCase()}` : "";
-    const bankTxnId = outcome === "success" ? `BANK${Date.now()}` : "";
-    const cardType = method === "card" ? "VISA-Dutch Bangla" : method === "bkash" ? "BKASH-BKash" : "NAGAD-Nagad";
-    const cardIssuer = method === "card" ? "DUTCH BANGLA BANK" : method === "bkash" ? "bKash Mobile Banking" : "Nagad";
+    // First call decides the outcome; later calls replay what the "bank" recorded
+    // (a real gateway would never issue a second val_id for the same tran_id).
+    const decided = txn.status !== "initiated";
+    const recordedOutcome: "success" | "failed" | "cancelled" = decided
+      ? txn.status === "success" || txn.status === "validated" || txn.status === "refunded"
+        ? "success"
+        : txn.status === "cancelled"
+          ? "cancelled"
+          : "failed"
+      : outcome;
+    const valId = decided ? (txn.val_id ?? "") : recordedOutcome === "success" ? `VAL-${randomBytes(6).toString("hex").toUpperCase()}` : "";
+    const bankTxnId = decided ? (txn.bank_txn_id ?? "") : recordedOutcome === "success" ? `BANK${Date.now()}` : "";
+    const cardType = decided ? (txn.card_type ?? "") : method === "card" ? "VISA-Dutch Bangla" : method === "bkash" ? "BKASH-BKash" : "NAGAD-Nagad";
+    const cardIssuer = decided ? (txn.card_issuer ?? "") : method === "card" ? "DUTCH BANGLA BANK" : method === "bkash" ? "bKash Mobile Banking" : "Nagad";
 
-    if (txn.status === "initiated") {
+    if (!decided) {
       await admin
         .from("payment_transactions")
         .update({
-          status: outcome,
+          status: recordedOutcome,
           val_id: valId || null,
           bank_txn_id: bankTxnId || null,
           card_type: cardType,
@@ -120,7 +142,7 @@ export class MockPaymentAdapter implements PaymentAdapter {
         .eq("id", txn.id);
     }
 
-    const status = outcome === "success" ? "VALID" : outcome === "failed" ? "FAILED" : "CANCELLED";
+    const status = recordedOutcome === "success" ? "VALID" : recordedOutcome === "failed" ? "FAILED" : "CANCELLED";
     const orderNumber = (txn.orders as { order_number: string } | null)?.order_number ?? null;
     const payload: Record<string, string> = {
       tran_id: txnId,
