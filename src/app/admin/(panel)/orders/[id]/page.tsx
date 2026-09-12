@@ -38,7 +38,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <>
             <StatusBadge s={o.status} />
             <StatusBadge s={o.payment_status} />
-            {o.needs_review && <span className="bg-amber text-ink rounded-lg px-2 py-0.5 text-xs font-semibold">Review queue</span>}
+            {o.needs_review && <Link href="/admin/orders/review" className="bg-amber text-ink rounded-lg px-2 py-0.5 text-xs font-semibold">Review queue</Link>}
+            {o.otp_reverify_required && <span className="bg-danger text-paper rounded-lg px-2 py-0.5 text-xs font-semibold">Re-verify phone</span>}
           </>
         }
       />
@@ -107,7 +108,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
 
         <aside className="space-y-4">
-          <OrderActions orderId={o.id} status={o.status} needsReview={o.needs_review} paymentMethod={o.payment_method} />
+          <OrderActions orderId={o.id} status={o.status} needsReview={o.needs_review} needsReverify={o.otp_reverify_required} paymentMethod={o.payment_method} shipmentStatus={[...(o.shipments ?? [])].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0]?.normalized_status ?? null} />
           <section className={`rounded-2xl border p-4 text-sm ${(o.fraud_score ?? 0) >= 60 ? "bg-danger/5 border-danger/40" : (o.fraud_score ?? 0) >= 30 ? "bg-warn/10 border-warn/40" : "bg-paper"}`}>
             <h2 className="font-semibold">Fraud score: {o.fraud_score ?? "—"}</h2>
             <p className="mt-1 font-medium">{risk}</p>

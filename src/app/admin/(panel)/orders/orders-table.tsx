@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBDT, formatDateTime } from "@/lib/format";
 import { ORDER_STATUSES } from "@/lib/orders/statuses";
-import { bulkStatusAction } from "./actions";
+import { bulkDispatchAction, bulkStatusAction } from "./actions";
 
 export interface OrderRow {
   id: string;
@@ -72,6 +72,17 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
       } else toast.error(r.error ?? "Failed");
     });
 
+  const dispatchSelected = () =>
+    start(async () => {
+      const r = await bulkDispatchAction(selectedIds);
+      if (!r.ok) return void toast.error(r.error ?? "Failed");
+      const failed = (r.results ?? []).filter((x) => !x.ok);
+      toast.success(r.message ?? "Dispatched");
+      for (const x of failed) toast.error(`${x.orderNumber}: ${x.error}`);
+      setSelection({});
+      router.refresh();
+    });
+
   return (
     <div className="bg-paper overflow-hidden rounded-2xl border">
       {selectedIds.length > 0 && (
@@ -86,6 +97,9 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
           </select>
           <Button size="sm" className="rounded-lg" disabled={pending} onClick={applyBulk}>
             Apply
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-lg" disabled={pending} onClick={dispatchSelected} title="Push every selected confirmed/processing/packed order to the courier (PART2 §14.7)">
+            Dispatch selected to courier
           </Button>
         </div>
       )}

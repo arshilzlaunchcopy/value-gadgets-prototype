@@ -5,8 +5,11 @@ import { releaseCart } from "@/lib/cart/reservations";
 import { computeTotals } from "@/lib/cart/totals";
 import { getDemoSetting, setDemoSetting } from "@/lib/demo/settings";
 import { isDemoMode } from "@/lib/env";
+import { findBlocks, phoneHasBlockHistory } from "@/lib/fraud/blocked";
+import { districtServiced, loadFraudConfig, loadServiceArea } from "@/lib/fraud/config";
 import { getCachedCourierScore } from "@/lib/fraud/courier-score";
-import { calculateFraudScore, FRAUD_THRESHOLDS } from "@/lib/fraud/score";
+import { calculateFraudScore, decideOrderPath } from "@/lib/fraud/score";
+import { autoDispatch } from "./auto-dispatch";
 import { getPayment } from "@/lib/integrations/payment";
 import { getSms } from "@/lib/integrations/sms";
 import { toE164BD } from "@/lib/phone";
@@ -37,6 +40,8 @@ export interface PlaceOrderInput {
   ip?: string | null;
   userAgent?: string | null;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null; landing_page?: string | null; referrer?: string | null };
+  /** false for quick-order landing pages that skipped OTP (PART2 §15.2) */
+  phoneVerified?: boolean;
 }
 
 export interface PlaceOrderResult {
@@ -64,12 +69,6 @@ function dhakaHour(date = new Date()): number {
   return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "numeric", hour12: false }).format(date));
 }
 
-async function thresholds(): Promise<{ review: number; advance: number }> {
-  const { data } = await createAdminClient().from("settings").select("value").eq("key", "fraud_thresholds").maybeSingle();
-  const v = (data?.value as { review?: number; advance?: number } | null) ?? {};
-  return { review: v.review ?? FRAUD_THRESHOLDS.review, advance: v.advance ?? FRAUD_THRESHOLDS.advance };
-}
-
 /**
  * Order placement (BUILD_PROMPT §9.1, PART2 §14.3). Everything is recomputed
  * from the database: the client only ever sent variant ids and quantities.
@@ -83,6 +82,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   const { data: customer } = await admin.from("customers").select("id, phone, full_name, email, is_blocked, total_orders, total_cancelled, total_returned").eq("id", input.customer.id).single();
   if (!customer) throw new OrderError("Customer not found", "INVALID");
   if (customer.is_blocked) throw new OrderError("This account cannot place orders. Please contact support.", "BLOCKED");
+  const blocks = await findBlocks({ phone, ip: input.ip, email: customer.email ?? input.customer.email });
+  if (blocks.length) throw new OrderError("This order cannot be placed. Please contact support.", "BLOCKED", blocks.map((b) => b.type));
 
   // 1. totals from the DB
   const totals = await computeTotals(input.cartId, { district: input.address.district, couponCode: input.couponCode ?? null, customerId: customer.id });
@@ -92,40 +93,50 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (short.length) throw new OrderError("Some items are no longer available in the requested quantity", "OUT_OF_STOCK", short.map((l) => ({ title: l.title, available: l.available_qty })));
   if (input.couponCode && totals.coupon && !totals.coupon.valid) throw new OrderError(totals.coupon.message, "INVALID");
 
-  // 2. fraud score
+  // 2. fraud score (rules + thresholds from the DB, courier score cached 7 days)
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
-  const [{ count: ipCount }, { count: blockedCount }, courier] = await Promise.all([
+  const [{ count: ipCount }, phoneBlocked, courier, config, area] = await Promise.all([
     input.ip ? admin.from("orders").select("id", { count: "exact", head: true }).eq("ip", input.ip).gte("placed_at", hourAgo) : Promise.resolve({ count: 0 }),
-    admin.from("orders").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "cancelled").not("admin_note", "is", null).ilike("admin_note", "%fraud%"),
+    phoneHasBlockHistory(phone),
     getCachedCourierScore(phone),
+    loadFraudConfig(),
+    loadServiceArea(),
   ]);
-  const fraud = calculateFraudScore({
-    paymentMethod: input.paymentMethod,
-    totalBdt: totals.total_bdt,
-    isFirstOrder: customer.total_orders === 0,
-    priorOrders: customer.total_orders,
-    priorCancelledOrReturned: customer.total_cancelled + customer.total_returned,
-    ordersFromIpLastHour: (ipCount ?? 0) + 1,
-    phoneHasBlockedOrder: (blockedCount ?? 0) > 0,
-    districtServiced: true,
-    placedHour: dhakaHour(),
-    courierScore: courier.score,
-    courierScoreUnavailable: courier.unavailable,
-  });
-  let score = fraud.score;
+  const fraud = calculateFraudScore(
+    {
+      paymentMethod: input.paymentMethod,
+      totalBdt: totals.total_bdt,
+      isFirstOrder: customer.total_orders === 0,
+      priorOrders: customer.total_orders,
+      priorCancelledOrReturned: customer.total_cancelled + customer.total_returned,
+      ordersFromIpLastHour: (ipCount ?? 0) + 1,
+      phoneHasBlockedOrder: phoneBlocked,
+      districtServiced: districtServiced(area, input.address.district),
+      placedHour: dhakaHour(),
+      courierScore: courier.score,
+      courierScoreUnavailable: courier.unavailable,
+    },
+    config,
+  );
   const flags = [...fraud.flags];
   if (isDemoMode()) {
     const override = await getDemoSetting("fraud_score_override");
     if (override !== null && override !== undefined) {
-      score = Math.max(0, Math.min(100, Number(override)));
-      flags.push(`demo override (${score})`);
+      const forced = Math.max(0, Math.min(100, Number(override)));
+      fraud.score = forced;
+      fraud.needsReview = forced >= config.thresholds.review;
+      fraud.needsAdvance = forced >= config.thresholds.advance;
+      fraud.needsReverify = forced >= config.thresholds.reverify_otp;
+      flags.push(`demo override (${forced})`);
       await setDemoSetting("fraud_score_override", null);
     }
   }
-  const t = await thresholds();
-  const needsReview = score >= t.review;
-  const needsAdvance = score >= t.advance;
-  const status = input.paymentMethod === "sslcommerz" ? "pending_payment" : needsAdvance ? "awaiting_advance" : "confirmed";
+  const score = fraud.score;
+  const decision = decideOrderPath(fraud, { paymentMethod: input.paymentMethod, totalBdt: totals.total_bdt }, config.thresholds);
+  const needsReview = decision.needsReview;
+  const needsAdvance = decision.needsAdvance;
+  if (decision.reasons.length) flags.push(...decision.reasons.filter((r) => !flags.includes(r)));
+  const status = input.paymentMethod === "sslcommerz" ? "pending_payment" : decision.codStatus;
 
   // 3. insert order with a unique number (retry on collision)
   const shippingAddress = {
@@ -166,7 +177,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         fraud_score: score,
         fraud_flags: flags as never,
         needs_review: needsReview,
-        is_phone_verified: true,
+        otp_reverify_required: decision.needsReverify,
+        is_phone_verified: input.phoneVerified ?? true,
         placed_at: now,
         confirmed_at: status === "confirmed" ? now : null,
         utm_source: input.utm?.source ?? null,
@@ -219,12 +231,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   await appendOrderEvent(orderId, "placed", { actorType: "customer", actorId: customer.id, note: `Placed via ${input.paymentMethod === "cod" ? "cash on delivery" : "online payment"}`, metadata: { total_bdt: totals.total_bdt } });
   if (status === "confirmed") await appendOrderEvent(orderId, "status_changed", { fromStatus: "pending_payment", toStatus: "confirmed", note: "COD auto-confirmed", metadata: { fraud_score: score } });
   if (status === "awaiting_advance") await appendOrderEvent(orderId, "status_changed", { fromStatus: "pending_payment", toStatus: "awaiting_advance", note: "Advance payment required before dispatch", metadata: { fraud_score: score } });
-  if (needsReview) await appendOrderEvent(orderId, "fraud_flagged", { note: `Fraud score ${score}: ${flags.join(", ")}`, metadata: { score, needs_advance: needsAdvance } });
+  if (needsReview) await appendOrderEvent(orderId, "fraud_flagged", { note: `Fraud score ${score}: ${flags.join(", ")}`, metadata: { score, needs_advance: needsAdvance, needs_reverify: decision.needsReverify, path: decision.path } });
 
-  // 7. notify / payment session
+  // 7. notify / payment session / auto-dispatch (PART2 §14.3)
   let redirectUrl: string | undefined;
   if (input.paymentMethod === "cod") {
     if (status === "confirmed") await notifyConfirmed(orderId, orderNumber, totals.total_bdt, phone);
+    if (decision.autoDispatch) await autoDispatch(orderId, `COD auto-confirmed, score ${score}`);
   } else {
     const { data: order } = await admin.from("orders").select("*").eq("id", orderId).single();
     if (order) {

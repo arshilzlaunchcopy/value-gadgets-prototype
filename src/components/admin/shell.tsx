@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, LayoutDashboard, LayoutTemplate, ListTree, LogOut, MessageSquareText, Package, Palette, ShoppingCart, SlidersHorizontal, Warehouse } from "lucide-react";
+import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, LayoutDashboard, LayoutTemplate, ListTree, LogOut, MessageSquareText, Package, Palette, ShieldAlert, ShoppingCart, SlidersHorizontal, Truck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -9,6 +9,9 @@ import { signOutAction } from "@/app/admin/login/actions";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/orders/review", label: "Review queue", icon: ShieldAlert, exact: true },
+  { href: "/admin/courier", label: "Courier", icon: Truck },
+  { href: "/admin/fraud", label: "Fraud rules", icon: ShieldAlert },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate },
@@ -51,7 +54,7 @@ export function AdminShell({ children, storeName, user }: { children: React.Reac
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Admin">
           {NAV.map((n) => {
-            const active = n.exact ? pathname === n.href : pathname.startsWith(n.href);
+            const active = n.exact ? pathname === n.href : pathname.startsWith(n.href) && !(n.href === "/admin/orders" && pathname === "/admin/orders/review");
             const Icon = n.icon;
             return (
               <Link

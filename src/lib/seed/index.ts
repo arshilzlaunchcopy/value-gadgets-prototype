@@ -9,6 +9,7 @@ import { seedReviews } from "./reviews";
 import { SEED } from "./rng";
 import { seedSettings } from "./settings";
 import { seedAdmin, seedContent } from "./content";
+import { seedFraud } from "./fraud";
 
 export const ORDER_COUNT = 320;
 export const ORDER_DAYS = 120;
@@ -30,6 +31,7 @@ function primaryImages(): Map<string, string | null> {
 export async function seedAll(): Promise<SeedSummary> {
   const t0 = Date.now();
   await seedSettings();
+  await seedFraud();
   const catalog = await seedCatalog();
   const customers = await seedCustomers();
   const { count } = await generateOrderBatch(customers, catalog, {
@@ -109,3 +111,4 @@ export { seedCatalog } from "./catalog";
 export { seedCustomers } from "./customers";
 export { seedSettings } from "./settings";
 export { seedAdmin, seedContent } from "./content";
+export { seedFraud } from "./fraud";

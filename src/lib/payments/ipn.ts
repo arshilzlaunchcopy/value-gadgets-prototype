@@ -1,7 +1,9 @@
 import "server-only";
 
 import { z } from "zod";
+import { loadFraudConfig } from "@/lib/fraud/config";
 import { getPayment } from "@/lib/integrations/payment";
+import { autoDispatch } from "@/lib/orders/auto-dispatch";
 import { notifyConfirmed } from "@/lib/orders/create";
 import { appendOrderEvent, transitionOrder } from "@/lib/orders/status";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -96,8 +98,13 @@ export async function processIpn(raw: Record<string, unknown>): Promise<IpnOutco
   await admin.from("orders").update({ payment_status: "paid" }).eq("id", order.id);
   if (order.status === "pending_payment" || order.status === "awaiting_advance") {
     await transitionOrder(order.id, "confirmed", { eventType: "payment_validated", note: `Payment ${ipn.tran_id} validated: ৳${order.total_bdt}` });
-    const { data: o } = await admin.from("orders").select("order_number, customer_phone").eq("id", order.id).single();
-    if (o) await notifyConfirmed(order.id, o.order_number, order.total_bdt, o.customer_phone).catch((e) => console.warn("[ipn] confirmation SMS failed:", e));
+    const { data: o } = await admin.from("orders").select("order_number, customer_phone, fraud_score, needs_review").eq("id", order.id).single();
+    if (o) {
+      await notifyConfirmed(order.id, o.order_number, order.total_bdt, o.customer_phone).catch((e) => console.warn("[ipn] confirmation SMS failed:", e));
+      // PART2 §14.3: paid online + score below the review line -> auto-dispatch
+      const { thresholds } = await loadFraudConfig();
+      if (thresholds.auto_dispatch && !o.needs_review && (o.fraud_score ?? 0) < thresholds.review) await autoDispatch(order.id, `paid online, score ${o.fraud_score ?? 0}`);
+    }
   } else {
     await appendOrderEvent(order.id, "payment_validated", { note: `Payment ${ipn.tran_id} validated` });
   }

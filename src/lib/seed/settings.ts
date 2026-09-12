@@ -59,19 +59,34 @@ export const DEFAULT_SETTINGS: { key: string; is_public: boolean; value: unknown
       delivered: { en: "Order {order_number} delivered. Thank you! Review: {url}", bn: "অর্ডার {order_number} ডেলিভারি হয়েছে। ধন্যবাদ! রিভিউ: {url}" },
     },
   },
-  { key: "fraud_thresholds", is_public: false, value: { review: 30, advance: 60, cod_auto_confirm_max: 3000 } },
+  { key: "fraud_thresholds", is_public: false, value: { review: 30, advance: 60, reverify_otp: 80, cod_auto_confirm_max: 3000, trusted_cod_multiplier: 2, auto_dispatch: true } },
+  // empty districts = every district is serviced (PART2 §14.6 routes by district later)
+  { key: "service_area", is_public: false, value: { districts: [] } },
+  // courier raw status -> normalized status overrides (PART2 §14.4); defaults live in src/lib/courier/webhook.ts
+  { key: "courier_status_map", is_public: false, value: {} },
+  { key: "courier", is_public: false, value: { low_balance_warning_bdt: 5000, poll_stale_hours: 2 } },
   { key: "otp", is_public: false, value: { ttl_min: 5, per_phone_hour: 3, per_ip_hour: 10, cooldown_s: 60, max_failed: 5 } },
 ];
 
 export async function seedSettings(): Promise<number> {
   const admin = createAdminClient();
-  const { data: existing } = await admin.from("settings").select("key");
-  const have = new Set((existing ?? []).map((r) => r.key));
+  const { data: existing } = await admin.from("settings").select("key, value");
+  const have = new Map((existing ?? []).map((r) => [r.key, r.value]));
   const rows = DEFAULT_SETTINGS.filter((s) => !have.has(s.key)).map((s) => ({ key: s.key, value: s.value as never, is_public: s.is_public }));
   if (rows.length) {
     const { error } = await admin.from("settings").insert(rows);
     if (error) throw new Error(`seed settings: ${error.message}`);
   }
-  console.log(`[seed] settings: ${rows.length} inserted, ${have.size} kept`);
+  // Object-valued keys gain any NEW sub-keys added by later phases; admin edits to existing sub-keys survive.
+  let merged = 0;
+  for (const s of DEFAULT_SETTINGS) {
+    const cur = have.get(s.key);
+    if (!cur || typeof cur !== "object" || Array.isArray(cur) || typeof s.value !== "object" || Array.isArray(s.value)) continue;
+    const missing = Object.keys(s.value as object).filter((k) => !(k in (cur as object)));
+    if (!missing.length) continue;
+    const { error } = await admin.from("settings").update({ value: { ...(s.value as object), ...(cur as object) } as never }).eq("key", s.key);
+    if (!error) merged++;
+  }
+  console.log(`[seed] settings: ${rows.length} inserted, ${have.size} kept, ${merged} merged`);
   return rows.length;
 }

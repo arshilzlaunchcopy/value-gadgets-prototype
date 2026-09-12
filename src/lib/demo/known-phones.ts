@@ -7,7 +7,12 @@ export interface KnownPhone {
   phone: string; // local 11-digit
   score: CourierScore;
   expect: string;
+  /** seeded into blocked_entities (checkout refuses it outright) */
+  blocked?: boolean;
 }
+
+/** Seeded into blocked_entities by the seed engine (PART3 §20.4: "one that's outright blocked"). */
+export const BLOCKED_DEMO_PHONE = "01799999999";
 
 /**
  * Reference phone numbers for the demo panel (BUILD_PROMPT_PART3 §20.4).
@@ -23,14 +28,17 @@ function find(bucket: ScoreBucket, start: number): string {
 }
 
 const DEFINITIONS: { label: string; bucket: ScoreBucket; expect: string }[] = [
-  { label: "Excellent (trusted)", bucket: "good", expect: "Auto-confirms; COD ceiling raised (-20)" },
+  { label: "Excellent (trusted)", bucket: "good", expect: "Auto-confirms; COD ceiling doubled (-20)" },
   { label: "New customer", bucket: "new", expect: "+10; COD above threshold goes to review" },
   { label: "Mixed history", bucket: "mixed", expect: "+20; likely review queue" },
   { label: "Risky", bucket: "risky", expect: "+40; review queue + advance payment" },
-  { label: "Flagged (fraud reports)", bucket: "flagged", expect: "+50; blocked pending manual approval" },
+  { label: "Flagged (fraud reports)", bucket: "flagged", expect: "+50; review queue, phone re-verification" },
 ];
 
-export const KNOWN_PHONES: KnownPhone[] = DEFINITIONS.map((k, i) => {
-  const phone = find(k.bucket, 11_111_111 + i * 1_000);
-  return { ...k, phone, score: mockCourierScore(phone) };
-});
+export const KNOWN_PHONES: KnownPhone[] = [
+  ...DEFINITIONS.map((k, i) => {
+    const phone = find(k.bucket, 11_111_111 + i * 1_000);
+    return { ...k, phone, score: mockCourierScore(phone) };
+  }),
+  { label: "Blocked number", bucket: bucketFor(BLOCKED_DEMO_PHONE), phone: BLOCKED_DEMO_PHONE, score: mockCourierScore(BLOCKED_DEMO_PHONE), expect: "Checkout refused (blocked_entities)", blocked: true },
+];
