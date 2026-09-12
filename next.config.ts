@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 /**
  * Production-mode build assertion (BUILD_PROMPT_PART3 §19).
@@ -23,17 +24,19 @@ function assertNotDemoInProduction(): void {
     );
   }
 }
-assertNotDemoInProduction();
-
 /**
  * The storefront is pre-rendered from the database at build time
  * (generateStaticParams, ISR). A missing public Supabase variable used to fail
  * deep inside "Collecting page data" with "supabaseUrl is required". Fail here
  * instead, with the fix spelled out. On Netlify the variables must be scoped to
  * BUILDS as well as Functions (Site configuration -> Environment variables).
+ *
+ * The phase comes from the config-function argument: `next build` only sets
+ * process.env.NEXT_PHASE after the config has been loaded, so an env check
+ * against it never fires in the main build process.
  */
-function assertBuildEnv(): void {
-  if (process.env.NEXT_PHASE !== "phase-production-build") return;
+function assertBuildEnv(phase: string): void {
+  if (phase !== PHASE_PRODUCTION_BUILD) return;
   const missing = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"].filter((k) => !process.env[k]);
   if (missing.length) {
     throw new Error(
@@ -43,7 +46,6 @@ function assertBuildEnv(): void {
     );
   }
 }
-assertBuildEnv();
 
 function hostOf(url: string | undefined): string | null {
   try {
@@ -53,17 +55,20 @@ function hostOf(url: string | undefined): string | null {
   }
 }
 
-const remoteHosts = [hostOf(process.env.NEXT_PUBLIC_SUPABASE_URL), hostOf(process.env.R2_PUBLIC_BASE_URL)].filter(
-  (h): h is string => Boolean(h),
-);
+export default function nextConfig(phase: string): NextConfig {
+  assertNotDemoInProduction();
+  assertBuildEnv(phase);
 
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  serverExternalPackages: ["sharp"],
-  images: {
-    formats: ["image/avif", "image/webp"],
-    remotePatterns: remoteHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
-  },
-};
+  const remoteHosts = [hostOf(process.env.NEXT_PUBLIC_SUPABASE_URL), hostOf(process.env.R2_PUBLIC_BASE_URL)].filter(
+    (h): h is string => Boolean(h),
+  );
 
-export default nextConfig;
+  return {
+    reactStrictMode: true,
+    serverExternalPackages: ["sharp"],
+    images: {
+      formats: ["image/avif", "image/webp"],
+      remotePatterns: remoteHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
+    },
+  };
+}
