@@ -102,6 +102,7 @@ export async function firePaymentIpn(orderId: string, kind: IpnKind): Promise<Ac
     const admin = createAdminClient();
     const { data: order } = await admin.from("orders").select("*").eq("id", orderId).single();
     if (!order) throw new Error("order not found");
+    if (order.payment_status === "paid") throw new Error(`${order.order_number} is already paid - a repeat IPN is ignored as a duplicate. Pick an unpaid order.`);
     const mock = getMockPayment();
 
     let { data: txn } = await admin

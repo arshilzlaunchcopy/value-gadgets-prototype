@@ -42,7 +42,7 @@ next-env.d.ts
 !.env.example
 
 # local seed artefacts
-/supabase/seed/image-manifest.json
+/supabase/seed/image-cache.json
 /public/seed-images/
 
 # scratch

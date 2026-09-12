@@ -174,7 +174,8 @@ export function DemoPanel({ data }: { data: PanelData }) {
                     start(async () => {
                       const r = await runFullLifecycle(orderId);
                       setLifecycleRunning(false);
-                      r.ok ? toast.success(r.message) : toast.error(r.message);
+                      if (r.ok) toast.success(r.message);
+                      else toast.error(r.message);
                       router.refresh();
                     });
                   }}
@@ -202,7 +203,12 @@ export function DemoPanel({ data }: { data: PanelData }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <OrderPicker orders={data.orders.filter((o) => o.payment_method === "sslcommerz")} value={orderId} onChange={setOrderId} emptyLabel="No online-payment orders yet" />
+              <OrderPicker
+                orders={[...data.orders.filter((o) => o.payment_method === "sslcommerz")].sort((a, b) => Number(a.payment_status === "paid") - Number(b.payment_status === "paid"))}
+                value={orderId}
+                onChange={setOrderId}
+                emptyLabel="No online-payment orders yet"
+              />
               <div className="flex flex-wrap gap-2">
                 {(["success", "failed", "timeout", "tampered"] as IpnKind[]).map((k) => (
                   <Button key={k} variant={k === "tampered" ? "destructive" : k === "success" ? "default" : "outline"} disabled={!orderId || busy} onClick={() => act(() => firePaymentIpn(orderId, k))}>
@@ -385,11 +391,17 @@ export function DemoPanel({ data }: { data: PanelData }) {
 }
 
 function OrderPicker({ orders, value, onChange, emptyLabel = "No orders yet - seed first" }: { orders: PanelOrder[]; value: string; onChange: (v: string) => void; emptyLabel?: string }) {
+  const inList = orders.some((o) => o.id === value);
+  const first = orders[0]?.id;
+  // Keep the shared selection in step with what this picker shows.
+  useEffect(() => {
+    if (!inList && first) onChange(first);
+  }, [inList, first, onChange]);
   if (orders.length === 0) return <p className="text-muted-foreground text-sm">{emptyLabel}</p>;
   return (
     <div className="space-y-1">
       <Label>Order</Label>
-      <Select value={orders.some((o) => o.id === value) ? value : orders[0].id} onValueChange={onChange}>
+      <Select value={inList ? value : first} onValueChange={onChange}>
         <SelectTrigger className="w-full sm:w-[520px]"><SelectValue placeholder="Pick an order" /></SelectTrigger>
         <SelectContent>
           {orders.map((o) => (

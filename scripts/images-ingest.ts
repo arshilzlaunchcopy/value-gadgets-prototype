@@ -21,7 +21,7 @@ import { loadEnv } from "./lib/env";
 
 loadEnv();
 
-const CACHE_PATH = resolve(process.cwd(), "supabase/seed/image-manifest.json");
+const CACHE_PATH = resolve(process.cwd(), "supabase/seed/image-cache.json");
 const EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".tif", ".tiff"]);
 
 export interface CachedImage {

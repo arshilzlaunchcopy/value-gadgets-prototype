@@ -35,7 +35,7 @@ export async function getDemoSettings(): Promise<DemoSettings> {
   const { data } = await createAdminClient().from("demo_settings").select("key, value");
   const out: DemoSettings = { ...DEMO_DEFAULTS };
   for (const row of data ?? []) {
-    if (row.key in out) (out as Record<string, unknown>)[row.key] = row.value;
+    if (row.key in out) (out as unknown as Record<string, unknown>)[row.key] = row.value;
   }
   return out;
 }

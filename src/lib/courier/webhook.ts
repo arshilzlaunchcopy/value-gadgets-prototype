@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import type { TablesUpdate } from "@/lib/database.types";
 import type { NormalizedCourierStatus } from "@/lib/integrations/courier/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { transitionOrder, type OrderStatus } from "@/lib/orders/status";
@@ -73,7 +74,7 @@ export async function processCourierWebhook(payload: CourierWebhookPayload, sour
     .maybeSingle();
   if (!shipment) return { ok: false as const, reason: "shipment not found" };
 
-  const patch: Record<string, unknown> = {
+  const patch: TablesUpdate<"shipments"> = {
     status: payload.status,
     normalized_status: normalized,
     last_webhook_payload: { ...payload, _source: source, _received_at: new Date().toISOString() },

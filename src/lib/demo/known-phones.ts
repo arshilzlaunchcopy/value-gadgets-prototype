@@ -22,13 +22,15 @@ function find(bucket: ScoreBucket, start: number): string {
   throw new Error(`no phone found for bucket ${bucket}`);
 }
 
-export const KNOWN_PHONES: KnownPhone[] = [
+const DEFINITIONS: { label: string; bucket: ScoreBucket; expect: string }[] = [
   { label: "Excellent (trusted)", bucket: "good", expect: "Auto-confirms; COD ceiling raised (-20)" },
   { label: "New customer", bucket: "new", expect: "+10; COD above threshold goes to review" },
   { label: "Mixed history", bucket: "mixed", expect: "+20; likely review queue" },
   { label: "Risky", bucket: "risky", expect: "+40; review queue + advance payment" },
   { label: "Flagged (fraud reports)", bucket: "flagged", expect: "+50; blocked pending manual approval" },
-].map((k, i) => {
+];
+
+export const KNOWN_PHONES: KnownPhone[] = DEFINITIONS.map((k, i) => {
   const phone = find(k.bucket, 11_111_111 + i * 1_000);
   return { ...k, phone, score: mockCourierScore(phone) };
 });
