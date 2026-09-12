@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { preload } from "react-dom";
+import { preconnect, preload } from "react-dom";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
 import { ProductPurchase } from "@/components/store/pdp/product-purchase";
 import { Description, Highlights, Reviews, SpecTable, TrustRow } from "@/components/store/pdp/sections";
@@ -51,7 +51,10 @@ export default async function ProductPage({ params }: Props) {
   // The main product image is the LCP element (BUILD_PROMPT §7.9): preload it from <head>
   // so it is not queued behind scripts. Matches the WebP srcset the gallery renders.
   const lcp = images[0]?.picture;
-  if (lcp) preload(lcp.src, { as: "image", fetchPriority: "high", imageSrcSet: lcp.webpSrcSet, imageSizes: "(min-width: 1024px) 50vw, 100vw" });
+  if (lcp) {
+    preconnect(new URL(lcp.src).origin);
+    preload(lcp.src, { as: "image", fetchPriority: "high", imageSrcSet: lcp.webpSrcSet, imageSizes: "(min-width: 1024px) 50vw, 100vw" });
+  }
   const crumbs = [...(category ? [{ label: category.name_en, href: `/category/${category.slug}` }] : []), { label: product.title_en, href: `/products/${product.slug}` }];
 
   const productJsonLd = {

@@ -33,6 +33,24 @@ user `postgres.<ref>`). The direct `db.<ref>.supabase.co` host is IPv6-only.
 | `npm run seed:images` | Render placeholder PNGs into `public/seed-images/`, ingest, write `src/lib/seed/data/images.generated.ts` |
 | `npm run images:ingest <dir>` | Bulk-ingest real photos (`<dir>/<product-slug>/1.jpg` or `<slug>__1.jpg`) |
 
+## Storefront, cart, checkout, payments (Phases 5-7)
+
+- `/`, `/category/[slug]`, `/collection/[slug]`, `/products/[slug]` (SSG + ISR 1h), `/search?q=`.
+  Filters are URL params (`?brand=&min=&max=&in_stock=1&sort=&page=`); filtered URLs are `noindex`.
+- Cart lives in Postgres keyed by the httpOnly `vgbd_cart` cookie. All mutations are Server Actions;
+  totals (coupons, shipping zones) are always recomputed on the server.
+- Checkout reserves stock for 30 minutes (`reserve_stock` SQL function). Expired holds are released
+  by `POST /api/cron/release-reservations` (Netlify scheduled function every 10 min).
+- OTP: `POST` via Server Actions -> `otp_codes` (hashed, 5 min TTL, 3/phone/h, 10/IP/h, 60 s cooldown,
+  5 failed max). Success signs the shopper in with a synthetic email identity. Demo mode shows the code.
+- Online payment: `getPayment().createSession()` -> gateway -> `POST /api/payment/ipn` (validation API,
+  amount + currency check, idempotent on `gateway_txn_id`). `/api/payment/{success,fail,cancel}` are
+  display-only. `POST /api/payment/reconcile` (cron, 30 min) queries the gateway for lost IPNs.
+- Tests: `npm test` runs the tampering suite against the demo database.
+
+Lighthouse: run `node scripts/lh-proxy.mjs` and audit `http://localhost:3001/...` (gzip, like the CDN).
+Use `--throttling-method=devtools`; Lighthouse's simulated mode reports decoded sizes here.
+
 ## Demo mode
 
 With `DEMO_MODE=true`:

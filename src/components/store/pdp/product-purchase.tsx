@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { addToCart, buyNow } from "@/lib/cart/actions";
 import type { VariantPublic } from "@/lib/catalog/queries";
 import { formatBDT } from "@/lib/format";
-import type { PictureData } from "@/lib/media/picture";
+import { restrictPicture, type PictureData } from "@/lib/media/picture";
 import { useCart } from "../cart/cart-provider";
 import { Picture } from "../picture";
 import { DiscountBadge, Price } from "../price";
@@ -90,7 +90,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
                   aria-current={i === activeImage}
                   className={`block size-16 overflow-hidden rounded-lg border-2 ${i === activeImage ? "border-amber" : "border-transparent"}`}
                 >
-                  <Picture data={img.picture} sizes="64px" className="block size-full" imgClassName="size-full object-cover" />
+                  <Picture data={restrictPicture(img.picture, 320)} sizes="64px" className="block size-full" imgClassName="size-full object-cover" />
                 </button>
               </li>
             ))}

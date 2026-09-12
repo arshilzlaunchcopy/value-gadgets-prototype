@@ -81,9 +81,11 @@ function toSummary(p: ProductRow): ProductSummary {
     review_count: p.review_count ?? 0,
     is_featured: Boolean(p.is_featured),
     published_at: p.published_at,
+    // grid cards render at most ~50vw on phones / 25vw on desktop: 640px covers 2x DPR
     image: toPicture(
       { url: p.primary_image_url, alt_text_en: p.primary_image_alt, manifest: p.primary_image_manifest, blur_data_url: p.primary_image_blur, width: p.primary_image_width, height: p.primary_image_height },
       p.title_en ?? "",
+      640,
     ),
   };
 }

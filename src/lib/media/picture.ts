@@ -24,10 +24,17 @@ export interface ImageRowLike {
   height?: number | null;
 }
 
-export function toPicture(row: ImageRowLike | null | undefined, altFallback: string): PictureData | null {
+/**
+ * @param maxWidth largest candidate to include (e.g. 640 for grid cards). Keeps the
+ *   HTML/RSC payload small: a card never needs the 1920px candidate.
+ */
+export function toPicture(row: ImageRowLike | null | undefined, altFallback: string, maxWidth = Infinity): PictureData | null {
   if (!row || !row.url) return null;
   const m = parseManifest(row.manifest);
-  const set = (entries: { w: number; url: string }[]) => entries.map((e) => `${e.url} ${e.w}w`).join(", ");
+  const set = (entries: { w: number; url: string }[]) => {
+    const kept = entries.filter((e) => e.w <= maxWidth);
+    return (kept.length ? kept : entries.slice(0, 1)).map((e) => `${e.url} ${e.w}w`).join(", ");
+  };
   return {
     src: m?.formats.jpeg.url ?? row.url,
     avifSrcSet: m ? set(m.formats.avif) : undefined,
@@ -37,4 +44,15 @@ export function toPicture(row: ImageRowLike | null | undefined, altFallback: str
     blur: row.blur_data_url ?? undefined,
     alt: row.alt_text_en ?? altFallback,
   };
+}
+
+/** Client-safe: shrink an existing PictureData's candidate lists (e.g. 320 for thumbnails). */
+export function restrictPicture(data: PictureData, maxWidth: number): PictureData {
+  const trim = (s?: string) => {
+    if (!s) return s;
+    const parts = s.split(", ");
+    const kept = parts.filter((p) => Number(p.slice(p.lastIndexOf(" ") + 1, -1)) <= maxWidth);
+    return (kept.length ? kept : parts.slice(0, 1)).join(", ");
+  };
+  return { ...data, avifSrcSet: trim(data.avifSrcSet), webpSrcSet: trim(data.webpSrcSet) };
 }

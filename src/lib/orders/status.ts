@@ -94,11 +94,13 @@ async function bumpCustomerCounters(customerId: string, from: OrderStatus, to: O
   if (Object.keys(patch).length) await admin.from("customers").update(patch).eq("id", customerId);
 }
 
-export async function appendOrderEvent(orderId: string, eventType: string, opts: Omit<TransitionOptions, "eventType" | "force"> = {}) {
+export async function appendOrderEvent(orderId: string, eventType: string, opts: Omit<TransitionOptions, "eventType" | "force"> & { fromStatus?: OrderStatus | null; toStatus?: OrderStatus | null } = {}) {
   const admin = createAdminClient();
   await admin.from("order_events").insert({
     order_id: orderId,
     event_type: eventType,
+    from_status: opts.fromStatus ?? null,
+    to_status: opts.toStatus ?? null,
     actor_type: opts.actorType ?? "system",
     actor_id: opts.actorId ?? null,
     note: opts.note ?? null,

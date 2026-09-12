@@ -55,6 +55,14 @@ npm run gen:types        # regenerate src/lib/database.types.ts — run after EV
 npm run seed:images      # generate + ingest placeholder product images (once)
 npm run seed             # idempotent full seed (catalog + customers + orders + reviews)
 npm run images:ingest <dir>   # bulk-ingest real photos through the image pipeline
+npm test                 # Vitest against the demo DB (IPN tampering, totals) - needs DEMO_MODE=true
+node scripts/lh-proxy.mjs     # gzip proxy on :3001 for Lighthouse runs (mirrors the CDN)
+
+## Auth model (Phase 6)
+Phone OTP over our own `otp_codes` table (hashed codes, rate limits in settings.otp).
+A verified phone becomes a Supabase EMAIL session: email `<local>@PHONE_EMAIL_DOMAIN`,
+password HMAC-SHA256(AUTH_PEPPER, E.164). NOT Supabase phone auth. Demo: code shown on
+screen, 123456 always accepted. See src/lib/auth/{otp,identity}.ts.
 
 ## Definition of done for any phase
 - npm run build passes, zero TS errors, zero lint warnings

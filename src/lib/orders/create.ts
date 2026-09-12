@@ -217,7 +217,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   // 6. events
   await appendOrderEvent(orderId, "placed", { actorType: "customer", actorId: customer.id, note: `Placed via ${input.paymentMethod === "cod" ? "cash on delivery" : "online payment"}`, metadata: { total_bdt: totals.total_bdt } });
-  if (status === "confirmed") await appendOrderEvent(orderId, "status_changed", { note: "COD auto-confirmed", metadata: { from: "pending_payment", to: "confirmed", fraud_score: score } });
+  if (status === "confirmed") await appendOrderEvent(orderId, "status_changed", { fromStatus: "pending_payment", toStatus: "confirmed", note: "COD auto-confirmed", metadata: { fraud_score: score } });
+  if (status === "awaiting_advance") await appendOrderEvent(orderId, "status_changed", { fromStatus: "pending_payment", toStatus: "awaiting_advance", note: "Advance payment required before dispatch", metadata: { fraud_score: score } });
   if (needsReview) await appendOrderEvent(orderId, "fraud_flagged", { note: `Fraud score ${score}: ${flags.join(", ")}`, metadata: { score, needs_advance: needsAdvance } });
 
   // 7. notify / payment session
