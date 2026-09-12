@@ -51,6 +51,23 @@ user `postgres.<ref>`). The direct `db.<ref>.supabase.co` host is IPv6-only.
 Lighthouse: run `node scripts/lh-proxy.mjs` and audit `http://localhost:3001/...` (gzip, like the CDN).
 Use `--throttling-method=devtools`; Lighthouse's simulated mode reports decoded sizes here.
 
+## Blocks, page builder, theme, admin (Phases 8-11)
+
+- **Blocks**: `src/lib/blocks/types/<name>.tsx` = one block (zod schema, metadata, component, optional
+  server loader). Adding a file is all it takes; the registry uses webpack `require.context` and the admin
+  form is derived from the schema. Starter blocks: hero slider, banner grid, rich text, image with text,
+  product carousel, category tiles, trust badges, FAQ accordion (emits FAQPage JSON-LD).
+- **Page builder** at `/admin/pages/<pageType>[/<targetId>]`: block list with drag handles, live preview
+  iframe (375 / 768 / 1280), settings panel, autosaved draft, publish (`publish_page` SQL function),
+  discard, named save points and revision restore. Previews use signed 2-hour tokens (`/preview/...`).
+- **Theme** at `/admin/theme` (announcement bar with schedule, header, footer, brand) and **Navigation**
+  at `/admin/navigation` (main / mobile / footer menus, two levels, mega-menu panels). Saving revalidates
+  every page (`layout` tag).
+- **Admin** at `/admin` (sign in with the seeded owner: `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD`):
+  dashboard (today / 7d / 30d, Recharts), orders (filters, bulk status, detail with fraud panel, dispatch,
+  notes, SMS resend), products (inline stock, bulk status, duplicate, CSV export, tabbed editor with
+  variants, pipeline image uploads, SEO with SERP preview, organization), inventory, media, SMS log.
+
 ## Demo mode
 
 With `DEMO_MODE=true`:

@@ -2,27 +2,9 @@ import "server-only";
 
 import type { Tables } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { type OrderStatus } from "./statuses";
 
-export type OrderStatus = Tables<"orders">["status"];
-
-export const ORDER_STATUSES: OrderStatus[] = [
-  "pending_payment",
-  "awaiting_advance",
-  "confirmed",
-  "processing",
-  "packed",
-  "shipped",
-  "delivered",
-  "cancelled",
-  "returned",
-  "refunded",
-];
-
-const TERMINAL: OrderStatus[] = ["delivered", "cancelled", "returned", "refunded"];
-
-export function isTerminal(s: OrderStatus): boolean {
-  return TERMINAL.includes(s);
-}
+export { ORDER_STATUSES, isTerminal, type OrderStatus } from "./statuses";
 
 export interface TransitionOptions {
   actorType?: "admin" | "customer" | "system";
@@ -47,7 +29,7 @@ export async function transitionOrder(orderId: string, to: OrderStatus, opts: Tr
     .eq("id", orderId)
     .single();
   if (error || !order) throw new Error(`order ${orderId} not found`);
-  const from = order.status;
+  const from = order.status as OrderStatus;
   if (from === to && !opts.force) return { changed: false, from, to };
 
   const now = new Date().toISOString();

@@ -58,6 +58,19 @@ npm run images:ingest <dir>   # bulk-ingest real photos through the image pipeli
 npm test                 # Vitest against the demo DB (IPN tampering, totals) - needs DEMO_MODE=true
 node scripts/lh-proxy.mjs     # gzip proxy on :3001 for Lighthouse runs (mirrors the CDN)
 
+## Blocks, theme, admin (Phases 8-11)
+- A block = ONE file in src/lib/blocks/types/*.tsx exporting `defineBlock({...})`
+  (zod schema + component + optional loader). The registry discovers files with
+  webpack require.context; admin forms come from schemaToFields(schema). Never
+  hand-write a block form.
+- content_drafts = working copy; content_blocks = live rows. Publish goes through
+  the publish_page() SQL function and revalidates the `content` tags. Header /
+  footer / menus are cached under tag `layout`.
+- Admin sign-in: Supabase email+password, must have an active admin_users row.
+  Demo owner from DEMO_ADMIN_EMAIL / DEMO_ADMIN_PASSWORD (seeded). Server actions
+  call requireAdmin() first, always.
+- TanStack Table is pinned to v8 (v9 pre-release has a different API).
+
 ## Auth model (Phase 6)
 Phone OTP over our own `otp_codes` table (hashed codes, rate limits in settings.otp).
 A verified phone becomes a Supabase EMAIL session: email `<local>@PHONE_EMAIL_DOMAIN`,
