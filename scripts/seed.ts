@@ -23,7 +23,7 @@ if (process.env.DEMO_MODE !== "true") {
   let out: unknown;
   if (args.includes("--catalog")) out = { settings: await seed.seedSettings(), products: (await seed.seedCatalog()).products.size };
   else if (args.includes("--settings")) out = { settings: await seed.seedSettings(), fraud: await seed.seedFraud() };
-  else if (args.includes("--content")) out = { content: await seed.seedContent(), admin: await seed.seedAdmin() };
+  else if (args.includes("--content")) out = { content: await seed.seedContent(), landing: await seed.seedLandingPages(), admin: await seed.seedAdmin() };
   else if (args.includes("--reset-all")) out = await seed.resetAll();
   else if (args.includes("--reset")) out = await seed.resetTransactional();
   else if (args.includes("--orders")) out = await seed.generateOrders(Number(args[args.indexOf("--orders") + 1] ?? 20));

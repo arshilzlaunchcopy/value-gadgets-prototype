@@ -24,6 +24,9 @@ export async function GET(req: Request) {
     items = ((await admin.from("categories").select("id, name_en, slug").order("position")).data ?? []).map((r) => ({ id: r.id, label: r.name_en, slug: r.slug }));
   } else if (type === "collection") {
     items = ((await admin.from("collections").select("id, title_en, slug").order("position")).data ?? []).map((r) => ({ id: r.id, label: r.title_en, slug: r.slug }));
+  } else if (type === "landing") {
+    const rows = (await admin.from("landing_pages").select("id, title, slug, variant_b_id, ab_enabled").order("title")).data ?? [];
+    items = rows.flatMap((r) => [{ id: r.id, label: `${r.title} (A)`, slug: r.slug }, ...(r.ab_enabled ? [{ id: r.variant_b_id, label: `${r.title} (B)`, slug: r.slug }] : [])]);
   }
   return NextResponse.json({ items });
 }

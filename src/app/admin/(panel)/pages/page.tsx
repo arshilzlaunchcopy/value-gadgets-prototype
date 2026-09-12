@@ -51,7 +51,7 @@ export default async function PagesIndex() {
       </ul>
       <section className="bg-paper mt-6 rounded-2xl border p-4">
         <h2 className="font-semibold">Instance override</h2>
-        <p className="text-muted-foreground mb-3 text-sm">Give one product, category or collection its own block layout.</p>
+        <p className="text-muted-foreground mb-3 text-sm">Give one product, category, collection or landing page variant its own block layout. Landing pages are created under <Link href="/admin/landing" className="underline">Landing pages</Link>.</p>
         <InstancePicker />
       </section>
     </>

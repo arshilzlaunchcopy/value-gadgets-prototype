@@ -11,7 +11,7 @@ interface Option {
 
 export function InstancePicker() {
   const router = useRouter();
-  const [type, setType] = useState<"product" | "category" | "collection">("product");
+  const [type, setType] = useState<"product" | "category" | "collection" | "landing">("product");
   const [options, setOptions] = useState<Option[]>([]);
   const [id, setId] = useState("");
 
@@ -32,6 +32,7 @@ export function InstancePicker() {
         <option value="product">Product</option>
         <option value="category">Category</option>
         <option value="collection">Collection</option>
+        <option value="landing">Landing page</option>
       </select>
       <select value={id} onChange={(e) => setId(e.target.value)} className="bg-paper min-w-64 rounded-lg border px-3 py-2 text-sm">
         <option value="">Choose…</option>

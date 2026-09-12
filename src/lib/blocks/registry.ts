@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { BlockDefinition, PageType } from "./define";
+import type { BlockDefinition, BlockMinRole, PageType } from "./define";
 import { schemaToFields, type FieldSpec } from "./fields";
 
 /**
@@ -32,8 +32,14 @@ export interface BlockMeta {
   icon: string;
   description?: string;
   allowedOn: PageType[];
+  minRole: BlockMinRole;
   defaults: Record<string, unknown>;
   fields: FieldSpec[];
+}
+
+const ROLE_RANK: Record<BlockMinRole, number> = { staff: 1, manager: 2, owner: 3 };
+export function roleAllows(role: BlockMinRole, min: BlockMinRole | undefined): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[min ?? "staff"];
 }
 
 export function blockMeta(def: BlockDefinition): BlockMeta {
@@ -47,14 +53,16 @@ export function blockMeta(def: BlockDefinition): BlockMeta {
     icon: def.icon,
     description: def.description,
     allowedOn: def.allowedOn,
+    minRole: def.minRole ?? "staff",
     defaults: (parsed.success ? parsed.data : def.defaults) as Record<string, unknown>,
     fields: schemaToFields(def.schema),
   };
 }
 
-export function listBlocks(pageType?: PageType): BlockMeta[] {
+export function listBlocks(pageType?: PageType, role: BlockMinRole = "owner"): BlockMeta[] {
   return Object.values(BLOCKS)
     .filter((b) => !pageType || b.allowedOn.includes(pageType))
+    .filter((b) => roleAllows(role, b.minRole))
     .sort((a, b) => a.label.localeCompare(b.label))
     .map(blockMeta);
 }

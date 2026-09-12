@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { preconnect, preload } from "react-dom";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
+import { RecentlyViewedTracker } from "@/components/store/blocks/recently-viewed";
 import { ProductPurchase } from "@/components/store/pdp/product-purchase";
 import { Description, Highlights, Reviews, SpecTable, TrustRow } from "@/components/store/pdp/sections";
 import { ProductGrid, SectionHeading } from "@/components/store/product-grid";
@@ -88,6 +89,7 @@ export default async function ProductPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(publicEnv.siteUrl, crumbs)) }} />
       <Breadcrumbs items={crumbs} />
+      <RecentlyViewedTracker slug={product.slug} />
 
       <ProductPurchase
         productTitle={product.title_en}

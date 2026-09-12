@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth/admin";
 import { PAGE_TYPES, type BlockRow, type PageType } from "@/lib/blocks/define";
 import { listBlocks, type BlockMeta } from "@/lib/blocks/registry";
 import { signPreview } from "@/lib/preview";
@@ -23,6 +24,7 @@ const rowCols = "id, block_type, settings, is_visible, visible_from, visible_unt
 export async function loadBuilder(pageTypeRaw: string, targetId: string | null): Promise<BuilderInitial> {
   if (!PAGE_TYPES.includes(pageTypeRaw as PageType)) notFound();
   const pageType = pageTypeRaw as PageType;
+  const session = await requireAdminPage("/admin/pages");
   const admin = createAdminClient();
 
   let dq = admin.from("content_drafts").select("blocks, updated_at").eq("page_type", pageType);
@@ -41,6 +43,9 @@ export async function loadBuilder(pageTypeRaw: string, targetId: string | null):
       const { data } = await admin.from(table).select("*").eq("id", targetId).maybeSingle();
       const row = data as { title_en?: string; name_en?: string } | null;
       targetLabel = row?.title_en ?? row?.name_en ?? targetId;
+    } else if (pageType === "landing") {
+      const { data } = await admin.from("landing_pages").select("title, slug, variant_b_id").or(`id.eq.${targetId},variant_b_id.eq.${targetId}`).maybeSingle();
+      if (data) targetLabel = `${data.title} (/lp/${data.slug}) · variant ${data.variant_b_id === targetId ? "B" : "A"}`;
     }
   }
 
@@ -55,7 +60,7 @@ export async function loadBuilder(pageTypeRaw: string, targetId: string | null):
     hasDraft: Boolean(draftRows),
     draftUpdatedAt: draft?.updated_at ?? null,
     publishedCount: liveRows.length,
-    blockMetas: listBlocks(pageType),
+    blockMetas: listBlocks(pageType, session.role),
     previewUrl,
   };
 }

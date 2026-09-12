@@ -2,10 +2,10 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth/admin";
+import { requireAdmin, type AdminRole } from "@/lib/auth/admin";
 import { contentTag } from "@/lib/blocks/content";
 import { PAGE_TYPES, type BlockRow, type PageType } from "@/lib/blocks/define";
-import { parseSettings } from "@/lib/blocks/registry";
+import { getBlock, parseSettings, roleAllows } from "@/lib/blocks/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const pageTypeSchema = z.enum(PAGE_TYPES as [PageType, ...PageType[]]);
@@ -22,12 +22,14 @@ const rowSchema = z.object({
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
-/** Validate every block against its schema (server-side, never trust the editor). */
-function validateRows(rows: unknown): { ok: true; rows: BlockRow[] } | { ok: false; error: string } {
+/** Validate every block against its schema (server-side, never trust the editor); role-gated blocks need the role. */
+function validateRows(rows: unknown, role: AdminRole): { ok: true; rows: BlockRow[] } | { ok: false; error: string } {
   const parsed = z.array(rowSchema).max(60).safeParse(rows);
   if (!parsed.success) return { ok: false, error: "Invalid block list" };
   const out: BlockRow[] = [];
   for (const r of parsed.data) {
+    const def = getBlock(r.block_type);
+    if (def && !roleAllows(role, def.minRole)) return { ok: false, error: `${r.block_type} requires the ${def.minRole} role` };
     const s = parseSettings(r.block_type, r.settings);
     if (!s.ok) return { ok: false, error: `${r.block_type}: ${s.error}` };
     out.push({ ...r, settings: s.settings });
@@ -39,6 +41,11 @@ async function revalidatePage(pageType: PageType, targetId: string | null) {
   revalidateTag(contentTag(pageType, targetId));
   revalidateTag("content");
   if (pageType === "home") revalidatePath("/");
+  if (pageType === "landing" && targetId) {
+    const { data } = await createAdminClient().from("landing_pages").select("slug").or(`id.eq.${targetId},variant_b_id.eq.${targetId}`).maybeSingle();
+    if (data?.slug) revalidatePath(`/lp/${data.slug}`);
+    return;
+  }
   if (targetId) {
     const admin = createAdminClient();
     const table = pageType === "product" ? "products" : pageType === "category" ? "categories" : pageType === "collection" ? "collections" : null;
@@ -54,7 +61,7 @@ export async function saveDraftAction(pageTypeRaw: string, targetIdRaw: string |
     const session = await requireAdmin();
     const pageType = pageTypeSchema.parse(pageTypeRaw);
     const targetId = targetSchema.parse(targetIdRaw);
-    const v = validateRows(rows);
+    const v = validateRows(rows, session.role);
     if (!v.ok) return { ok: false, error: v.error };
     const admin = createAdminClient();
     const { error } = await admin.from("content_drafts").upsert({ page_type: pageType, target_id: targetId, blocks: v.rows as never, updated_by: session.userId }, { onConflict: "page_type,target_id" });
@@ -70,7 +77,7 @@ export async function publishPageAction(pageTypeRaw: string, targetIdRaw: string
     const session = await requireAdmin("manager");
     const pageType = pageTypeSchema.parse(pageTypeRaw);
     const targetId = targetSchema.parse(targetIdRaw);
-    const v = validateRows(rows);
+    const v = validateRows(rows, session.role);
     if (!v.ok) return { ok: false, error: v.error };
     const admin = createAdminClient();
     const { data, error } = await admin.rpc("publish_page", { p_page_type: pageType, p_target_id: targetId, p_blocks: v.rows, p_label: label?.trim() || null, p_actor: session.userId } as never);
@@ -103,7 +110,7 @@ export async function saveRevisionAction(pageTypeRaw: string, targetIdRaw: strin
     const session = await requireAdmin();
     const pageType = pageTypeSchema.parse(pageTypeRaw);
     const targetId = targetSchema.parse(targetIdRaw);
-    const v = validateRows(rows);
+    const v = validateRows(rows, session.role);
     if (!v.ok) return { ok: false, error: v.error };
     const admin = createAdminClient();
     const { error } = await admin.from("content_revisions").insert({ page_type: pageType, target_id: targetId, snapshot: v.rows as never, label: label.trim().slice(0, 80) || "Named save point", created_by: session.userId });
@@ -141,11 +148,11 @@ export async function listRevisionsAction(pageTypeRaw: string, targetIdRaw: stri
 /** Loads a revision's snapshot into the editor (caller decides whether to save/publish). */
 export async function getRevisionAction(idRaw: string): Promise<ActionResult<BlockRow[]>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const id = z.string().uuid().parse(idRaw);
     const { data, error } = await createAdminClient().from("content_revisions").select("snapshot").eq("id", id).single();
     if (error) return { ok: false, error: error.message };
-    const v = validateRows(data.snapshot);
+    const v = validateRows(data.snapshot, session.role);
     if (!v.ok) return { ok: false, error: v.error };
     return { ok: true, data: v.rows };
   } catch (e) {

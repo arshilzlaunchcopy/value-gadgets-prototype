@@ -7,6 +7,9 @@ export const PAGE_TYPES: PageType[] = ["home", "product", "category", "collectio
 
 export type Locale = "en" | "bn";
 
+/** Admin role needed to place a block (html_raw is owner-only, PART2 §13.2). */
+export type BlockMinRole = "staff" | "manager" | "owner";
+
 export interface BlockComponentProps<S, D> {
   settings: S;
   /** result of the block's loader (products, categories...) or undefined */
@@ -28,6 +31,8 @@ export interface BlockDefinition<S extends z.ZodTypeAny = z.ZodTypeAny, D = unde
   icon: string;
   description?: string;
   allowedOn: PageType[];
+  /** minimum admin role allowed to add/edit this block (default: any admin) */
+  minRole?: BlockMinRole;
   schema: S;
   defaults: z.input<S>;
   component: (props: BlockComponentProps<z.output<S>, D>) => ReactNode | Promise<ReactNode>;

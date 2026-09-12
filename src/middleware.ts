@@ -1,13 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const AUTH_PATHS = [/^\/admin(\/|$)/, /^\/account(\/|$)/, /^\/checkout$/, /^\/order(\/|$)/];
+
 /**
- * Refreshes the Supabase session cookie on navigation and gates /admin/*
- * behind a signed-in user (the admin_users check happens in the admin layout,
- * where the DB is queried with the user's own RLS context).
+ * - Refreshes the Supabase session cookie and gates /admin/* behind a signed-in
+ *   user (the admin_users check happens in the admin layout with RLS).
+ * - Assigns the 50/50 A/B cookie for landing pages (PART2 §15.2).
  */
 export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
   let response = NextResponse.next({ request });
+
+  // Landing page A/B split: one sticky cookie per slug, set before any render.
+  const lp = /^\/lp\/([a-z0-9-]+)\/?$/i.exec(pathname);
+  if (lp) {
+    const name = `vg_ab_${lp[1].replace(/[^a-z0-9-]/gi, "")}`;
+    if (!request.cookies.get(name)) {
+      const variant = Math.random() < 0.5 ? "a" : "b";
+      request.cookies.set(name, variant);
+      response = NextResponse.next({ request });
+      response.cookies.set(name, variant, { path: `/lp/${lp[1]}`, sameSite: "lax", maxAge: 60 * 60 * 24 * 30 });
+    }
+    return response;
+  }
+
+  if (!AUTH_PATHS.some((re) => re.test(pathname))) return response;
+
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       getAll: () => request.cookies.getAll(),
@@ -23,7 +42,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname, search } = request.nextUrl;
   const isAdminArea = pathname.startsWith("/admin") && pathname !== "/admin/login";
   if (isAdminArea && !user) {
     const url = request.nextUrl.clone();
@@ -42,5 +60,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*", "/checkout", "/order/:path*"],
+  matcher: ["/admin/:path*", "/account/:path*", "/checkout", "/order/:path*", "/lp/:path*"],
 };

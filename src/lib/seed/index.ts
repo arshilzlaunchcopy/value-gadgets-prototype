@@ -10,6 +10,7 @@ import { SEED } from "./rng";
 import { seedSettings } from "./settings";
 import { seedAdmin, seedContent } from "./content";
 import { seedFraud } from "./fraud";
+import { seedLandingPages } from "./landing";
 
 export const ORDER_COUNT = 320;
 export const ORDER_DAYS = 120;
@@ -44,6 +45,7 @@ export async function seedAll(): Promise<SeedSummary> {
   const reviews = await seedReviews();
   await refreshCustomerCounters();
   await seedContent();
+  await seedLandingPages();
   await seedAdmin();
   const summary = { products: catalog.products.size, customers: customers.length, orders: count, reviews, ms: Date.now() - t0 };
   console.log(`[seed] done in ${summary.ms} ms`);
@@ -112,3 +114,4 @@ export { seedCustomers } from "./customers";
 export { seedSettings } from "./settings";
 export { seedAdmin, seedContent } from "./content";
 export { seedFraud } from "./fraud";
+export { seedLandingPages } from "./landing";

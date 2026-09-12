@@ -42,6 +42,9 @@ export interface PlaceOrderInput {
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null; landing_page?: string | null; referrer?: string | null };
   /** false for quick-order landing pages that skipped OTP (PART2 §15.2) */
   phoneVerified?: boolean;
+  source?: "web" | "landing" | "manual" | "api";
+  landingPageId?: string | null;
+  abVariant?: "a" | "b" | null;
 }
 
 export interface PlaceOrderResult {
@@ -187,6 +190,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         landing_page: input.utm?.landing_page ?? null,
         referrer: input.utm?.referrer ?? null,
         ip: input.ip ?? null,
+        source: input.source ?? "web",
+        landing_page_id: input.landingPageId ?? null,
+        ab_variant: input.abVariant ?? null,
       })
       .select("id")
       .single();

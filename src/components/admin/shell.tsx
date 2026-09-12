@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, LayoutDashboard, LayoutTemplate, ListTree, LogOut, MessageSquareText, Package, Palette, ShieldAlert, ShoppingCart, SlidersHorizontal, Truck, Warehouse } from "lucide-react";
+import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, LayoutDashboard, LayoutTemplate, ListTree, Megaphone, LogOut, MessageSquareText, Package, Palette, ShieldAlert, ShoppingCart, SlidersHorizontal, Truck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate },
+  { href: "/admin/landing", label: "Landing pages", icon: Megaphone },
   { href: "/admin/navigation", label: "Navigation", icon: ListTree },
   { href: "/admin/theme", label: "Theme", icon: Palette },
   { href: "/admin/media", label: "Media", icon: ImageIcon },
