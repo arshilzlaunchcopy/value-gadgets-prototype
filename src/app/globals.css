@@ -1,26 +1,176 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Brand tokens (BUILD_PROMPT §3). Dark chrome, bright product photography,
+   amber only where you want a click.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-ink: #1a1a1a;        /* primary background, dark surfaces */
+  --color-ink-soft: #242424;   /* elevated cards on dark */
+  --color-ink-line: #333333;   /* borders on dark */
+
+  --color-amber: #ffc107;      /* primary brand, CTAs */
+  --color-amber-lite: #ffd65c; /* gradient top stop, hovers */
+  --color-amber-deep: #e8a800; /* pressed states */
+
+  --color-paper: #ffffff;      /* light surfaces */
+  --color-paper-soft: #fafafa; /* page background light mode */
+  --color-paper-line: #e8e8e8;
+
+  --color-success: #16a34a;
+  --color-warn: #f59e0b;
+  --color-danger: #dc2626;
+}
+
+/* shadcn semantic variables mapped onto the brand palette */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --gradient-brand: linear-gradient(135deg, #ffd65c 0%, #ffc107 100%);
+
+  --background: #fafafa;             /* paper-soft */
+  --foreground: #1a1a1a;             /* ink */
+  --card: #ffffff;                   /* paper */
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #ffc107;                /* amber */
+  --primary-foreground: #1a1a1a;
+  --secondary: #f1f1f1;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f1f1f1;
+  --muted-foreground: #6b6b6b;
+  --accent: #fff4cc;                 /* faint amber tint for hover rows */
+  --accent-foreground: #1a1a1a;
+  --destructive: #dc2626;
+  --border: #e8e8e8;                 /* paper-line */
+  --input: #e8e8e8;
+  --ring: #ffc107;
+  --chart-1: #ffc107;
+  --chart-2: #1a1a1a;
+  --chart-3: #6b6b6b;
+  --chart-4: #16a34a;
+  --chart-5: #dc2626;
+  --radius: 0.75rem;                 /* rounded-lg inputs; 2xl (x1.8) for cards + primary buttons */
+  --sidebar: #1a1a1a;                /* admin shell is always ink */
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #ffc107;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #242424;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #333333;
+  --sidebar-ring: #ffc107;
+}
+
+.dark {
+  --background: #1a1a1a;
+  --foreground: #fafafa;
+  --card: #242424;
+  --card-foreground: #fafafa;
+  --popover: #242424;
+  --popover-foreground: #fafafa;
+  --primary: #ffc107;
+  --primary-foreground: #1a1a1a;
+  --secondary: #2e2e2e;
+  --secondary-foreground: #fafafa;
+  --muted: #2e2e2e;
+  --muted-foreground: #a3a3a3;
+  --accent: #2e2e2e;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: #333333;
+  --input: #333333;
+  --ring: #ffc107;
+  --chart-1: #ffc107;
+  --chart-2: #fafafa;
+  --chart-3: #a3a3a3;
+  --chart-4: #22c55e;
+  --chart-5: #ef4444;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #ffc107;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #242424;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #333333;
+  --sidebar-ring: #ffc107;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-bengali: var(--font-noto-bengali), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* The logo gradient, e.g. <div class="bg-gradient-brand"> */
+@utility bg-gradient-brand {
+  background-image: var(--gradient-brand);
+}
+
+/* Prices: bold, tabular numerals */
+@utility price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  /* Bangla text always uses the Bengali face */
+  :lang(bn),
+  [lang="bn"] {
+    font-family: var(--font-bengali);
+  }
 }
