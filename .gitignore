@@ -44,3 +44,6 @@ next-env.d.ts
 # local seed artefacts
 /supabase/seed/image-manifest.json
 /public/seed-images/
+
+# scratch
+/.tmp/
