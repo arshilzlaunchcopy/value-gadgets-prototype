@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/admin";
 import { LANDING_TAG } from "@/lib/landing/queries";
 import { landingPageSchema } from "@/lib/landing/schema";
@@ -47,6 +48,7 @@ export async function saveLandingPageAction(raw: unknown): Promise<R<{ id: strin
       await admin.from("redirects").upsert({ from_path: `/lp/${oldSlug}`, to_path: `/lp/${p.slug}`, status_code: 301, is_active: true }, { onConflict: "from_path" });
       revalidatePath(`/lp/${oldSlug}`);
     }
+    await audit(s, p.id ? "landing.update" : "landing.create", { type: "landing_page", id, after: { slug: p.slug, status: p.status, ab_enabled: p.ab_enabled } });
     revalidateTag(LANDING_TAG);
     revalidatePath(`/lp/${p.slug}`);
     revalidatePath("/admin/landing");

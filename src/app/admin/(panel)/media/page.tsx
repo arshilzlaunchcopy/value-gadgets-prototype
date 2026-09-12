@@ -8,7 +8,7 @@ export default function MediaPage() {
     <>
       <PageHeader title="Media library" description="Images for blocks, banners and the theme. Product photos live on the product editor." />
       <div className="bg-paper rounded-2xl border p-4">
-        <MediaLibrary />
+        <MediaLibrary manage />
       </div>
     </>
   );

@@ -57,8 +57,21 @@ export const DEFAULT_SETTINGS: { key: string; is_public: boolean; value: unknown
       order_confirmed: { en: "Order {order_number} confirmed. Total Tk {total}. Track: {url}", bn: "অর্ডার {order_number} নিশ্চিত হয়েছে। মোট {total} টাকা। ট্র্যাক: {url}" },
       shipped: { en: "Order {order_number} shipped via {courier}. Tracking: {tracking_id}", bn: "অর্ডার {order_number} {courier} এর মাধ্যমে পাঠানো হয়েছে। ট্র্যাকিং: {tracking_id}" },
       delivered: { en: "Order {order_number} delivered. Thank you! Review: {url}", bn: "অর্ডার {order_number} ডেলিভারি হয়েছে। ধন্যবাদ! রিভিউ: {url}" },
+      abandoned_cart: { en: "{store}: your cart is waiting. Finish your order: {url}", bn: "{store}: আপনার কার্ট অপেক্ষা করছে। অর্ডার শেষ করুন: {url}" },
+      advance_payment: { en: "Order {order_number}: please pay the ৳{amount} advance to confirm: {url}", bn: "অর্ডার {order_number}: নিশ্চিত করতে ৳{amount} অগ্রিম পরিশোধ করুন: {url}" },
     },
   },
+  {
+    key: "email_templates",
+    is_public: false,
+    value: {
+      order_confirmed: { subject_en: "Order {order_number} confirmed", body_en: "Thanks for your order **{order_number}** totalling ৳{total}. We will message you when it ships.\n\nTrack it any time: {url}", subject_bn: "অর্ডার {order_number} নিশ্চিত হয়েছে", body_bn: "আপনার অর্ডার **{order_number}** (মোট ৳{total}) নিশ্চিত হয়েছে। পাঠানো হলে জানাব।\n\nট্র্যাক করুন: {url}" },
+      shipped: { subject_en: "Order {order_number} is on its way", body_en: "Your parcel left with {courier}. Tracking: **{tracking_id}**.", subject_bn: "অর্ডার {order_number} পাঠানো হয়েছে", body_bn: "আপনার পার্সেল {courier} এর মাধ্যমে রওনা হয়েছে। ট্র্যাকিং: **{tracking_id}**।" },
+      delivered: { subject_en: "Order {order_number} delivered", body_en: "Enjoy! If anything is wrong, reply within 7 days for a replacement. Review: {url}", subject_bn: "অর্ডার {order_number} ডেলিভারি হয়েছে", body_bn: "কোনো সমস্যা হলে ৭ দিনের মধ্যে জানান। রিভিউ: {url}" },
+    },
+  },
+  { key: "locale", is_public: true, value: { default_locale: "en", show_language_switcher: true, bangla_numerals: false } },
+  { key: "payments", is_public: false, value: { sslcz_store_id: "", sslcz_store_passwd: "", sslcz_sandbox: true, bkash_merchant_number: "", cod_advance_bdt: 100 } },
   { key: "fraud_thresholds", is_public: false, value: { review: 30, advance: 60, reverify_otp: 80, cod_auto_confirm_max: 3000, trusted_cod_multiplier: 2, auto_dispatch: true } },
   // empty districts = every district is serviced (PART2 §14.6 routes by district later)
   { key: "service_area", is_public: false, value: { districts: [] } },

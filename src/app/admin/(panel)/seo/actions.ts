@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/admin";
 import { scanInternalLinks } from "@/lib/seo/audit";
 import { recordSlugRedirect } from "@/lib/seo/redirects";
@@ -26,6 +27,7 @@ export async function saveSeoSettingsAction(raw: unknown): Promise<R> {
     const v = seoSettingsSchema.parse(raw);
     const { error } = await createAdminClient().from("settings").upsert({ key: "seo", value: v as never, is_public: true, updated_by: s.userId }, { onConflict: "key" });
     if (error) return { ok: false, error: error.message };
+    await audit(s, "settings.seo", { type: "settings", after: { ...v, meta_capi_token: v.meta_capi_token ? "***" : "" } });
     bust();
     revalidatePath("/", "layout");
     return { ok: true, message: "SEO defaults saved" };

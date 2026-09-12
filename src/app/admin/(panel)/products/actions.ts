@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
 import { productSchema } from "@/lib/products/schema";
 import { recordSlugRedirect } from "@/lib/seo/redirects";
+import { audit } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type R<T = undefined> = { ok: true; data?: T; message?: string } | { ok: false; error: string };
@@ -23,7 +24,7 @@ async function revalidateProduct(slug: string | null) {
 /** Create or update a product with variants, organisation and SEO. Slug changes leave a 301 behind (§7.6). */
 export async function saveProductAction(payloadRaw: unknown): Promise<R<{ id: string; slug: string }>> {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const p = productSchema.parse(payloadRaw);
     const admin = createAdminClient();
     if (!p.variants.some((v) => v.is_default)) p.variants[0].is_default = true;
@@ -88,6 +89,7 @@ export async function saveProductAction(payloadRaw: unknown): Promise<R<{ id: st
       await recordSlugRedirect("product", oldSlug, p.slug);
       revalidatePath(`/products/${oldSlug}`);
     }
+    await audit(session, p.id ? "product.update" : "product.create", { type: "product", id: productId, before: oldSlug ? { slug: oldSlug } : null, after: { slug: p.slug, title_en: p.title_en, status: p.status } });
     await revalidateProduct(p.slug);
     revalidateTag("seo");
     revalidatePath("/admin/products");

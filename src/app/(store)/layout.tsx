@@ -6,6 +6,7 @@ import { Header } from "@/components/store/header";
 import { CartProvider } from "@/components/store/cart/cart-provider";
 import { CartDrawer } from "@/components/store/cart/cart-drawer";
 import { getNavCategories } from "@/lib/catalog/queries";
+import { getFooterPages } from "@/lib/content/queries";
 import { publicEnv } from "@/lib/env.public";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { getSeoSettings } from "@/lib/seo/settings";
@@ -27,14 +28,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Storefront shell: theme-driven header/footer (PART2 §13.4-13.5), cart drawer mounted once. */
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [store, categories, theme, menus] = await Promise.all([getStoreSettings(), getNavCategories(), getTheme(), getMenus()]);
+  const [store, categories, theme, menus, pages] = await Promise.all([getStoreSettings(), getNavCategories(), getTheme(), getMenus(), getFooterPages()]);
   return (
     <CartProvider>
       <JsonLd data={[organizationJsonLd(store), websiteJsonLd(store)]} />
       <AnalyticsScripts />
       <Header store={store} categories={categories} header={theme.header} announcement={theme.announcement} mainMenu={menus.main} mobileMenu={menus.mobile} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-      <Footer store={store} categories={categories} footer={theme.footer} menus={menus} />
+      <Footer store={store} categories={categories} footer={theme.footer} menus={menus} pages={pages} />
       <CartDrawer />
     </CartProvider>
   );

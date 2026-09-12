@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getCourier } from "@/lib/integrations/courier";
 import { dispatchOrder } from "@/lib/orders/dispatch";
@@ -27,6 +28,7 @@ export async function setOrderStatusAction(orderId: string, status: string, note
     } else {
       await transitionOrder(id, to, { actorType: "admin", actorId: s.userId, note: note?.trim() || undefined });
     }
+    await audit(s, "order.status", { type: "order", id, after: { status: to, note } });
     revalidatePath(`/admin/orders/${id}`);
     revalidatePath("/admin/orders");
     return { ok: true, message: `Order set to ${to}` };
@@ -81,6 +83,7 @@ export async function bulkDispatchAction(orderIds: string[]): Promise<R & { resu
         results.push({ orderId: o.id, orderNumber: o.order_number, ok: false, error: e instanceof Error ? e.message : String(e) });
       }
     }
+    await audit(s, "order.bulk_dispatch", { type: "order", after: { results } });
     revalidatePath("/admin/orders");
     const okCount = results.filter((r) => r.ok).length;
     return { ok: true, message: `${okCount} of ${results.length} dispatched`, results };
@@ -130,6 +133,7 @@ export async function markReviewedAction(orderId: string, approve: boolean): Pro
       await transitionOrder(id, "confirmed", { actorType: "admin", actorId: s.userId, note: "Confirmed from review queue" });
       await notifyConfirmed(id, o.order_number, o.total_bdt, o.customer_phone).catch(() => undefined);
     }
+    await audit(s, approve ? "order.review_approve" : "order.review_cancel", { type: "order", id, before: { status: o.status } });
     revalidatePath(`/admin/orders/${id}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin/orders/review");

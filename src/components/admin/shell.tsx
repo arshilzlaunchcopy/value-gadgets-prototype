@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, FolderTree, LayoutDashboard, LayoutTemplate, ListTree, Megaphone, Search, LogOut, MessageSquareText, Package, Palette, ShieldAlert, ShoppingCart, SlidersHorizontal, Truck, Warehouse } from "lucide-react";
+import { Boxes, ChevronLeft, ChevronRight, Image as ImageIcon, ClipboardList, FileText, FolderTree, LayoutDashboard, LayoutTemplate, ListTree, Megaphone, Percent, Search, Settings, Users, UsersRound, LogOut, MessageSquareText, Package, Palette, ShieldAlert, ShoppingCart, SlidersHorizontal, Truck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -15,13 +15,19 @@ const NAV = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/catalog", label: "Categories", icon: FolderTree },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/discounts", label: "Discounts", icon: Percent },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate },
   { href: "/admin/landing", label: "Landing pages", icon: Megaphone },
+  { href: "/admin/content", label: "Content", icon: FileText },
   { href: "/admin/navigation", label: "Navigation", icon: ListTree },
   { href: "/admin/theme", label: "Theme", icon: Palette },
   { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/seo", label: "SEO Center", icon: Search },
   { href: "/admin/sms", label: "SMS log", icon: MessageSquareText },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/staff", label: "Staff", icon: UsersRound },
+  { href: "/admin/audit", label: "Audit log", icon: ClipboardList },
   { href: "/demo", label: "Demo panel", icon: SlidersHorizontal, external: true },
 ];
 

@@ -11,15 +11,18 @@ export interface FooterProps {
   categories: CategorySummary[];
   footer?: FooterSettings;
   menus?: Record<string, NavItem[]>;
+  /** pages.show_in_footer rows; used when the Help menu is empty */
+  pages?: { slug: string; title_en: string; title_bn: string | null }[];
 }
 
 /** Footer builder output (PART2 §13.5): columns from menus, about, contact, trade licence, badges, copyright. */
-export function Footer({ store, categories, footer, menus = {} }: FooterProps) {
+export function Footer({ store, categories, footer, menus = {}, pages = [] }: FooterProps) {
   const year = new Date().getFullYear();
   const f: FooterSettings = footer ?? { columns: [{ heading_en: "Shop", menu_handle: "footer_col_1" }, { heading_en: "Help", menu_handle: "footer_col_2" }], about_text_en: "", show_contact_block: true, trade_license: "", tin: "", payment_badge_images: [], show_newsletter: false, copyright_en: "© {year} {store}. All rights reserved." };
   const fallbackShop: NavItem[] = categories.filter((c) => !c.parent_id).map((c) => ({ id: c.id, label_en: c.name_en, label_bn: c.name_bn, href: `/category/${c.slug}`, icon: null, badge_label: null, badge_color: null, opens_new_tab: false, is_mega: false, mega: null, children: [] }));
   const fallbackHelp: NavItem[] = [
-    ["Track your order", "/track"], ["Your account", "/account"], ["Terms & conditions", "/pages/terms"], ["Privacy policy", "/pages/privacy"], ["Return & refund policy", "/pages/refund"],
+    ["Track your order", "/track"], ["Your account", "/account"],
+    ...(pages.length ? pages.map((p) => [p.title_en, `/pages/${p.slug}`] as [string, string]) : ([["Terms & conditions", "/pages/terms"], ["Privacy policy", "/pages/privacy"], ["Return & refund policy", "/pages/refund"]] as [string, string][])),
   ].map(([label, href], i) => ({ id: `h${i}`, label_en: label, label_bn: null, href, icon: null, badge_label: null, badge_color: null, opens_new_tab: false, is_mega: false, mega: null, children: [] }));
   const columns = f.columns.map((c, i) => ({ heading: c.heading_en, items: menus[c.menu_handle]?.length ? menus[c.menu_handle] : i === 0 ? fallbackShop : i === 1 ? fallbackHelp : [] })).filter((c) => c.items.length);
   const licence = f.trade_license || store.trade_license;

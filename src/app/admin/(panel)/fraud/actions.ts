@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/admin";
 import { NORMALIZED_STATUSES } from "@/lib/courier/webhook";
 import { DEFAULT_FRAUD_RULES, type FraudThresholds } from "@/lib/fraud/score";
@@ -33,6 +34,7 @@ export async function addBlockAction(raw: unknown): Promise<R> {
     const { error } = await createAdminClient().from("blocked_entities").upsert({ type: b.type, value, reason: b.reason || null, blocked_by: s.userId, expires_at }, { onConflict: "type,value" });
     if (error) return { ok: false, error: error.message };
     if (b.type === "phone") await createAdminClient().from("customers").update({ is_blocked: true, block_reason: b.reason || "Blocked from fraud console" }).eq("phone", value);
+    await audit(s, "fraud.block", { type: "blocked_entity", after: { type: b.type, value, reason: b.reason } });
     revalidatePath("/admin/fraud");
     return { ok: true, message: `${b.type} blocked` };
   } catch (e) {
@@ -95,6 +97,7 @@ export async function saveThresholdsAction(raw: unknown, serviceDistrictsRaw: st
     const a = await admin.from("settings").upsert({ key: "fraud_thresholds", value: t as never, is_public: false, updated_by: s.userId }, { onConflict: "key" });
     const b = await admin.from("settings").upsert({ key: "service_area", value: { districts } as never, is_public: false, updated_by: s.userId }, { onConflict: "key" });
     if (a.error || b.error) return { ok: false, error: (a.error ?? b.error)!.message };
+    await audit(s, "settings.fraud_thresholds", { type: "settings", after: { ...t, districts } });
     revalidatePath("/admin/fraud");
     return { ok: true, message: "Thresholds saved" };
   } catch (e) {
