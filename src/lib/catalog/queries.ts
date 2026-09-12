@@ -380,6 +380,65 @@ export async function getAllProductSlugs(): Promise<{ slug: string; updated_at: 
   return (data ?? []).map((r) => ({ slug: r.slug!, updated_at: r.updated_at ?? new Date().toISOString() }));
 }
 
+export interface ProductSourceOptions {
+  source: "collection" | "category" | "newest" | "on_sale" | "best_selling" | "featured" | "manual";
+  slug?: string;
+  slugs?: string[];
+  limit?: number;
+}
+
+/** Products for a block "source" (PART2 §13.2 product_carousel). Cached by source key. */
+export const getProductsForSource = unstable_cache(
+  async (opts: ProductSourceOptions): Promise<ProductSummary[]> => {
+    const supabase = createPublicClient();
+    const limit = Math.min(24, Math.max(1, opts.limit ?? 8));
+    const base = () => supabase.from("products_public").select(SUMMARY_COLUMNS);
+    switch (opts.source) {
+      case "collection": {
+        if (!opts.slug) return [];
+        const col = await getCollectionBySlug(opts.slug);
+        if (!col) return [];
+        return (await getCollectionProducts(col.id, { page: 1 })).items.slice(0, limit);
+      }
+      case "category": {
+        if (!opts.slug) return [];
+        const cat = await getCategoryBySlug(opts.slug);
+        if (!cat) return [];
+        return (await getCategoryProducts(cat.id, { page: 1 })).items.slice(0, limit);
+      }
+      case "manual": {
+        const slugs = (opts.slugs ?? []).filter(Boolean);
+        if (!slugs.length) return [];
+        const { data } = await base().in("slug", slugs);
+        const order = new Map(slugs.map((s, i) => [s, i]));
+        return (data ?? [])
+          .map((r) => toSummary(r as ProductRow))
+          .sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0))
+          .slice(0, limit);
+      }
+      case "on_sale": {
+        const { data } = await base().not("max_compare_at_price_bdt", "is", null).order("review_count", { ascending: false }).limit(limit);
+        return (data ?? []).map((r) => toSummary(r as ProductRow));
+      }
+      case "featured": {
+        const { data } = await base().eq("is_featured", true).order("review_count", { ascending: false }).limit(limit);
+        return (data ?? []).map((r) => toSummary(r as ProductRow));
+      }
+      case "best_selling": {
+        const { data } = await base().order("review_count", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
+        return (data ?? []).map((r) => toSummary(r as ProductRow));
+      }
+      case "newest":
+      default: {
+        const { data } = await base().order("published_at", { ascending: false, nullsFirst: false }).limit(limit);
+        return (data ?? []).map((r) => toSummary(r as ProductRow));
+      }
+    }
+  },
+  ["products-for-source"],
+  { revalidate: CATALOG_REVALIDATE, tags: ["catalog"] },
+);
+
 /** Header search: top matches. */
 export async function quickSearch(query: string, limit = 6): Promise<ProductSummary[]> {
   const q = query.trim();

@@ -41,11 +41,11 @@ async function expectNoColumn(view: string, column: string) {
     "customers", "addresses", "otp_codes", "carts", "cart_items", "orders", "order_items",
     "order_events", "payment_transactions", "coupons", "coupon_redemptions", "stock_movements",
     "couriers", "shipments", "courier_api_log", "courier_score_cache", "admin_users", "audit_log",
-    "demo_sms_log", "demo_settings",
+    "demo_sms_log", "demo_settings", "content_drafts", "content_revisions", "stock_reservations",
   ]) {
     await expectLocked(t);
   }
-  for (const t of ["bd_locations", "categories", "brands", "collections", "products_public", "product_variants_public", "shipping_zones", "reviews"]) {
+  for (const t of ["bd_locations", "categories", "brands", "collections", "products_public", "product_variants_public", "shipping_zones", "reviews", "content_blocks", "navigation_menus", "navigation_items", "theme_settings", "media_assets", "seo_meta", "redirects", "settings"]) {
     await expectReadable(t);
   }
   await expectNoColumn("products_public", "cost_bdt");
