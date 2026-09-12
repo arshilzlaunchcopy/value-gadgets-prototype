@@ -7,6 +7,7 @@ import { SEED_IMAGES } from "./data/images.generated";
 import { generateOrderBatch, refreshCustomerCounters } from "./orders";
 import { seedReviews } from "./reviews";
 import { SEED } from "./rng";
+import { seedSettings } from "./settings";
 
 export const ORDER_COUNT = 320;
 export const ORDER_DAYS = 120;
@@ -27,6 +28,7 @@ function primaryImages(): Map<string, string | null> {
 /** Full idempotent seed: catalog -> customers -> 320 orders over 120 days -> reviews. */
 export async function seedAll(): Promise<SeedSummary> {
   const t0 = Date.now();
+  await seedSettings();
   const catalog = await seedCatalog();
   const customers = await seedCustomers();
   const { count } = await generateOrderBatch(customers, catalog, {
@@ -102,3 +104,4 @@ async function loadCustomers(): Promise<SeedCustomer[]> {
 
 export { seedCatalog } from "./catalog";
 export { seedCustomers } from "./customers";
+export { seedSettings } from "./settings";

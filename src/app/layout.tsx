@@ -11,11 +11,14 @@ const inter = Inter({
   display: "swap",
 });
 
+// Bengali face is declared but NOT preloaded (PART2 §16.2): the browser fetches it
+// only when Bangla glyphs are actually rendered, so English pages pay nothing.
 const notoBengali = Noto_Sans_Bengali({
   variable: "--font-noto-bengali",
   subsets: ["bengali"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

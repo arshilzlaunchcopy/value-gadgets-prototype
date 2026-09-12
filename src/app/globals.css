@@ -24,6 +24,9 @@
   --color-success: #16a34a;
   --color-warn: #f59e0b;
   --color-danger: #dc2626;
+  /* AA-contrast text variants of the status colours (small text on white) */
+  --color-success-deep: #166534;
+  --color-warn-deep: #9a3412;
 }
 
 /* shadcn semantic variables mapped onto the brand palette */

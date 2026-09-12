@@ -21,7 +21,8 @@ if (process.env.DEMO_MODE !== "true") {
   const args = process.argv.slice(2);
   const t0 = Date.now();
   let out: unknown;
-  if (args.includes("--catalog")) out = { products: (await seed.seedCatalog()).products.size };
+  if (args.includes("--catalog")) out = { settings: await seed.seedSettings(), products: (await seed.seedCatalog()).products.size };
+  else if (args.includes("--settings")) out = { settings: await seed.seedSettings() };
   else if (args.includes("--reset-all")) out = await seed.resetAll();
   else if (args.includes("--reset")) out = await seed.resetTransactional();
   else if (args.includes("--orders")) out = await seed.generateOrders(Number(args[args.indexOf("--orders") + 1] ?? 20));
