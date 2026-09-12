@@ -25,6 +25,26 @@ function assertNotDemoInProduction(): void {
 }
 assertNotDemoInProduction();
 
+/**
+ * The storefront is pre-rendered from the database at build time
+ * (generateStaticParams, ISR). A missing public Supabase variable used to fail
+ * deep inside "Collecting page data" with "supabaseUrl is required". Fail here
+ * instead, with the fix spelled out. On Netlify the variables must be scoped to
+ * BUILDS as well as Functions (Site configuration -> Environment variables).
+ */
+function assertBuildEnv(): void {
+  if (process.env.NEXT_PHASE !== "phase-production-build") return;
+  const missing = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"].filter((k) => !process.env[k]);
+  if (missing.length) {
+    throw new Error(
+      `Refusing to build: ${missing.join(", ")} not set. The build pre-renders pages from Supabase. ` +
+        "On Netlify add them under Site configuration > Environment variables with the Builds scope enabled " +
+        "(a Functions-only scope is not visible to next build).",
+    );
+  }
+}
+assertBuildEnv();
+
 function hostOf(url: string | undefined): string | null {
   try {
     return url ? new URL(url).hostname : null;

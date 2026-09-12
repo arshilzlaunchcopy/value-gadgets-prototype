@@ -4,13 +4,14 @@ import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
 import { ProductListing } from "@/components/store/product-listing";
 import { hasActiveFilters, parseListFilters, type SearchParams } from "@/lib/catalog/filters";
 import { getAllCollections, getCollectionBySlug, getCollectionProducts } from "@/lib/catalog/queries";
+import { staticParamsSafe } from "@/lib/build-safe";
 import { publicEnv } from "@/lib/env.public";
 import { getStoreSettings } from "@/lib/settings";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<SearchParams> };
 
 export async function generateStaticParams() {
-  return (await getAllCollections()).map((c) => ({ slug: c.slug }));
+  return staticParamsSafe("collections", async () => (await getAllCollections()).map((c) => ({ slug: c.slug })));
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {

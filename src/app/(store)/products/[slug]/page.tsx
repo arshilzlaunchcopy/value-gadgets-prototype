@@ -8,6 +8,7 @@ import { Description, Highlights, Reviews, SpecTable, TrustRow } from "@/compone
 import { ProductGrid, SectionHeading } from "@/components/store/product-grid";
 import { RatingStars } from "@/components/store/rating-stars";
 import { getAllProductSlugs, getProductBySlug } from "@/lib/catalog/queries";
+import { staticParamsSafe } from "@/lib/build-safe";
 import { publicEnv } from "@/lib/env.public";
 import { truncate } from "@/lib/format";
 import { getPublicSettings } from "@/lib/settings";
@@ -18,7 +19,7 @@ export const dynamicParams = true;
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {
-  return (await getAllProductSlugs()).map((p) => ({ slug: p.slug }));
+  return staticParamsSafe("products", async () => (await getAllProductSlugs()).map((p) => ({ slug: p.slug })));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
