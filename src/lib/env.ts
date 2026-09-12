@@ -5,7 +5,7 @@ import { z } from "zod";
  * Server-side environment. Validated once, lazily, so `next build` does not
  * fail on machines that only have the public vars set.
  *
- * SUPABASE_SERVICE_ROLE_KEY is deliberately NOT read here. It is read only by
+ * The service-role key is deliberately NOT read here. It is read only by
  * src/lib/supabase/admin.ts (CLAUDE.md rule 2).
  */
 const serverSchema = z.object({
