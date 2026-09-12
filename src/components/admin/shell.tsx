@@ -7,7 +7,6 @@ import { useEffect, useState, useTransition } from "react";
 import { signOutAction } from "@/app/admin/login/actions";
 
 const NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/orders/review", label: "Review queue", icon: ShieldAlert, exact: true },
   { href: "/admin/courier", label: "Courier", icon: Truck },
@@ -93,6 +92,15 @@ export function AdminShell({ children, storeName, user }: { children: React.Reac
         </div>
       </aside>
       <div className="min-w-0 flex-1">
+        <header className="bg-paper sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-2 sm:px-6">
+          <Link
+            href="/admin"
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition ${pathname === "/admin" ? "bg-amber text-ink font-semibold" : "text-ink hover:bg-paper-soft font-medium"}`}
+          >
+            <LayoutDashboard className="size-4 shrink-0" />
+            Dashboard
+          </Link>
+        </header>
         <main className="mx-auto max-w-7xl p-4 sm:p-6">{children}</main>
       </div>
       <span className="sr-only">
