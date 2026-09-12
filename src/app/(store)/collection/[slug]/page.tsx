@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
 import { ProductListing } from "@/components/store/product-listing";
 import { hasActiveFilters, parseListFilters, type SearchParams } from "@/lib/catalog/filters";
 import { getAllCollections, getCollectionBySlug, getCollectionProducts } from "@/lib/catalog/queries";
 import { staticParamsSafe } from "@/lib/build-safe";
 import { publicEnv } from "@/lib/env.public";
+import { itemListJsonLd } from "@/lib/seo/jsonld";
+import { buildMetadata } from "@/lib/seo/metadata";
 import { getStoreSettings } from "@/lib/settings";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<SearchParams> };
@@ -19,12 +22,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const col = await getCollectionBySlug(slug);
   if (!col) return {};
   const filters = parseListFilters(sp);
-  return {
-    title: `${col.title_en} - Buy Online in Bangladesh`,
-    description: col.description_en ?? `${col.title_en} at ${store.name}.`,
-    alternates: { canonical: `/collection/${col.slug}` },
-    robots: hasActiveFilters(filters) ? { index: false, follow: true } : undefined,
-  };
+  return buildMetadata({
+    entityType: "collection",
+    entityId: col.id,
+    path: `/collection/${col.slug}`,
+    templateVars: { name: col.title_en, title: col.title_en },
+    fallbackDescription: col.description_en ?? `${col.title_en} at ${store.name}. Genuine products, official warranty, cash on delivery across Bangladesh.`,
+    image: col.image_url ? { url: col.image_url } : null,
+    noindex: hasActiveFilters(filters),
+  });
 }
 
 export default async function CollectionPage({ params, searchParams }: Props) {
@@ -36,7 +42,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   const crumbs = [{ label: col.title_en, href: `/collection/${col.slug}` }];
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(publicEnv.siteUrl, crumbs)) }} />
+      <JsonLd data={[breadcrumbJsonLd(publicEnv.siteUrl, crumbs), itemListJsonLd(col.title_en, `/collection/${col.slug}`, list.items)]} />
       <Breadcrumbs items={crumbs} />
       <header className="mb-6">
         <h1 className="text-2xl font-semibold sm:text-3xl">{col.title_en}</h1>

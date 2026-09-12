@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { trackAddToCart } from "@/lib/analytics/events";
 import { addToCart } from "@/lib/cart/actions";
 import type { VariantPublic } from "@/lib/catalog/queries";
 import { useCart } from "../cart/cart-provider";
@@ -24,7 +25,10 @@ export function FeaturedBuyBox({ variants, label }: { variants: VariantPublic[];
     start(async () => {
       const r = await addToCart(variant.id, 1);
       setCart(r.cart);
-      if (r.ok) setOpen(true);
+      if (r.ok) {
+        trackAddToCart({ id: variant.id, name: variant.sku, price_bdt: variant.price_bdt, quantity: 1, variant: variant.option_value });
+        setOpen(true);
+      }
       else toast.error(r.message ?? "Could not add");
     });
 

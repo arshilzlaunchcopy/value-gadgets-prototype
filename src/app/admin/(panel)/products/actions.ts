@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
 import { productSchema } from "@/lib/products/schema";
+import { recordSlugRedirect } from "@/lib/seo/redirects";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type R<T = undefined> = { ok: true; data?: T; message?: string } | { ok: false; error: string };
@@ -64,7 +65,7 @@ export async function saveProductAction(payloadRaw: unknown): Promise<R<{ id: st
     const toDelete = (existing ?? []).map((v) => v.id).filter((id) => !keep.has(id));
     if (toDelete.length) await admin.from("product_variants").delete().in("id", toDelete);
     for (const [i, v] of p.variants.entries()) {
-      const vr = { product_id: productId, sku: v.sku, option_name: v.option_name || null, option_value: v.option_value || null, price_bdt: v.price_bdt, compare_at_price_bdt: v.compare_at_price_bdt ?? null, cost_bdt: v.cost_bdt ?? null, stock_qty: v.stock_qty, low_stock_threshold: v.low_stock_threshold, weight_grams: v.weight_grams ?? null, is_default: v.is_default, position: i };
+      const vr = { product_id: productId, sku: v.sku, option_name: v.option_name || null, option_value: v.option_value || null, price_bdt: v.price_bdt, compare_at_price_bdt: v.compare_at_price_bdt ?? null, cost_bdt: v.cost_bdt ?? null, stock_qty: v.stock_qty, low_stock_threshold: v.low_stock_threshold, weight_grams: v.weight_grams ?? null, gtin: v.gtin || null, mpn: v.mpn || null, is_default: v.is_default, position: i };
       const res = v.id ? await admin.from("product_variants").update(vr).eq("id", v.id) : await admin.from("product_variants").insert(vr);
       if (res.error) return { ok: false, error: res.error.code === "23505" ? `SKU ${v.sku} is already used` : res.error.message };
     }
@@ -84,10 +85,11 @@ export async function saveProductAction(payloadRaw: unknown): Promise<R<{ id: st
     }
 
     if (oldSlug && oldSlug !== p.slug) {
-      await admin.from("redirects").upsert({ from_path: `/products/${oldSlug}`, to_path: `/products/${p.slug}`, status_code: 301, is_active: true }, { onConflict: "from_path" });
+      await recordSlugRedirect("product", oldSlug, p.slug);
       revalidatePath(`/products/${oldSlug}`);
     }
     await revalidateProduct(p.slug);
+    revalidateTag("seo");
     revalidatePath("/admin/products");
     return { ok: true, data: { id: productId!, slug: p.slug }, message: "Product saved" };
   } catch (e) {

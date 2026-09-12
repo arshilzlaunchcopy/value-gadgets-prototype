@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrackPurchase } from "@/components/analytics/trackers";
 import { LAST_ORDER_COOKIE } from "@/lib/checkout/schema";
 import { OrderTimeline, statusLabel } from "@/components/store/order-timeline";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,9 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {(paid || order.status === "confirmed" || order.status === "shipped") && (
+        <TrackPurchase order={{ id: order.id, number: order.order_number, total_bdt: order.total_bdt, shipping_bdt: order.shipping_bdt, items: items.map((it) => ({ id: it.product_title, name: it.product_title, price_bdt: it.unit_price_bdt, quantity: it.quantity, variant: it.variant_label })) }} />
+      )}
       <header className="bg-paper rounded-2xl border p-6 text-center">
         <p className="text-amber-deep text-xs font-semibold tracking-wide uppercase">{pendingOnline ? "Payment pending" : "Thank you"}</p>
         <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Order {order.order_number}</h1>

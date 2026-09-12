@@ -23,7 +23,7 @@ export default defineBlock({
   description: "Feature section: image on one side, copy and CTA on the other.",
   allowedOn: ["home", "product", "category", "collection", "page", "landing", "custom"],
   schema,
-  defaults: { image_url: "", alt_text: "Feature", image_side: "left", eyebrow_en: "Warranty", heading_en: "Every product ships with an official warranty", text_en: "6 to 24 months, handled by us, no runaround.", cta_label_en: "Learn more", cta_href: "/policies/refund", dark: false },
+  defaults: { image_url: "", alt_text: "Feature", image_side: "left", eyebrow_en: "Warranty", heading_en: "Every product ships with an official warranty", text_en: "6 to 24 months, handled by us, no runaround.", cta_label_en: "Learn more", cta_href: "/pages/refund", dark: false },
   component: ({ settings, locale }) => {
     const heading = (locale === "bn" && settings.heading_bn) || settings.heading_en;
     return (

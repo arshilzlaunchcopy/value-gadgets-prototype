@@ -10,6 +10,8 @@ const AUTH_PATHS = [/^\/admin(\/|$)/, /^\/account(\/|$)/, /^\/checkout$/, /^\/or
  */
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // the 404 page reads the requested path from this header to consult the redirects table (§7.6)
+  request.headers.set("x-pathname", pathname);
   let response = NextResponse.next({ request });
 
   // Landing page A/B split: one sticky cookie per slug, set before any render.
@@ -60,5 +62,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*", "/checkout", "/order/:path*", "/lp/:path*"],
+  // every page route; skips Next internals, API routes, feeds, sitemaps and static files
+  matcher: ["/((?!_next/|api/|feeds/|sitemaps?/|sitemap[^/]*\\.xml|robots\\.txt|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };

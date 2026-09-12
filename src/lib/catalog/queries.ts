@@ -37,6 +37,8 @@ export interface CategorySummary {
   image_url: string | null;
   parent_id: string | null;
   position: number;
+  /** §7.5: filtered URLs of this category may be indexed */
+  index_filters: boolean;
 }
 
 export type SortKey = "relevance" | "price_asc" | "price_desc" | "newest";
@@ -99,7 +101,7 @@ export const getNavCategories = unstable_cache(
   async (): Promise<CategorySummary[]> => {
     const { data } = await createPublicClient()
       .from("categories")
-      .select("id, slug, name_en, name_bn, description_en, image_url, parent_id, position")
+      .select("id, slug, name_en, name_bn, description_en, image_url, parent_id, position, index_filters")
       .eq("is_active", true)
       .order("position");
     return (data ?? []) as CategorySummary[];
@@ -262,6 +264,8 @@ export interface VariantPublic {
   low_stock_threshold: number;
   is_default: boolean;
   position: number;
+  gtin: string | null;
+  mpn: string | null;
 }
 
 export interface ProductImagePublic {
@@ -331,7 +335,7 @@ export const getProductBySlug = unstable_cache(
     const { data: p } = await supabase.from("products_public").select("*").eq("slug", slug).maybeSingle();
     if (!p) return null;
     const [variants, images, reviews, cats, shipping] = await Promise.all([
-      supabase.from("product_variants_public").select("id, sku, option_name, option_value, price_bdt, compare_at_price_bdt, available_qty, low_stock_threshold, is_default, position").eq("product_id", p.id!).order("position"),
+      supabase.from("product_variants_public").select("id, sku, option_name, option_value, price_bdt, compare_at_price_bdt, available_qty, low_stock_threshold, is_default, position, gtin, mpn").eq("product_id", p.id!).order("position"),
       supabase.from("product_images").select("id, variant_id, position, url, alt_text_en, manifest, blur_data_url, width, height").eq("product_id", p.id!).order("position"),
       supabase.from("reviews").select("id, rating, title, body, reviewer_name, is_verified_purchase, admin_reply, replied_at, created_at").eq("product_id", p.id!).eq("status", "approved").order("created_at", { ascending: false }).limit(12),
       supabase.from("product_categories").select("category_id").eq("product_id", p.id!),

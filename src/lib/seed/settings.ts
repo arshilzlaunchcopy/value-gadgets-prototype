@@ -65,6 +65,26 @@ export const DEFAULT_SETTINGS: { key: string; is_public: boolean; value: unknown
   // courier raw status -> normalized status overrides (PART2 §14.4); defaults live in src/lib/courier/webhook.ts
   { key: "courier_status_map", is_public: false, value: {} },
   { key: "courier", is_public: false, value: { low_balance_warning_bdt: 5000, poll_stale_hours: 2 } },
+  // SEO defaults (BUILD_PROMPT §7.2 templates, §7.8 ids). Public: analytics ids ship to the browser anyway.
+  {
+    key: "seo",
+    is_public: true,
+    value: {
+      title_template_product: "{title} — Price in Bangladesh | {store}",
+      title_template_category: "{name} — Buy Online in Bangladesh | {store}",
+      title_template_collection: "{name} | {store}",
+      title_template_post: "{title} | {store} Blog",
+      title_template_page: "{title} | {store}",
+      home_title: "",
+      default_description: "Genuine USB-C hubs, cables, chargers, audio and smart-home gadgets with official warranty. Cash on delivery across Bangladesh.",
+      default_og_image: "",
+      gsc_verification: "",
+      ga4_id: "",
+      meta_pixel_id: "",
+      meta_capi_token: "",
+      index_site: true,
+    },
+  },
   { key: "otp", is_public: false, value: { ttl_min: 5, per_phone_hour: 3, per_ip_hour: 10, cooldown_s: 60, max_failed: 5 } },
 ];
 

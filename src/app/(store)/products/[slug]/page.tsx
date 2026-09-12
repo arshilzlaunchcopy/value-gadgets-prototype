@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { preconnect, preload } from "react-dom";
+import { TrackViewItem } from "@/components/analytics/trackers";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
 import { RecentlyViewedTracker } from "@/components/store/blocks/recently-viewed";
 import { ProductPurchase } from "@/components/store/pdp/product-purchase";
@@ -11,7 +13,8 @@ import { RatingStars } from "@/components/store/rating-stars";
 import { getAllProductSlugs, getProductBySlug } from "@/lib/catalog/queries";
 import { staticParamsSafe } from "@/lib/build-safe";
 import { publicEnv } from "@/lib/env.public";
-import { truncate } from "@/lib/format";
+import { productJsonLd } from "@/lib/seo/jsonld";
+import { buildMetadata } from "@/lib/seo/metadata";
 import { getPublicSettings } from "@/lib/settings";
 
 export const revalidate = 3600;
@@ -28,19 +31,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const detail = await getProductBySlug(slug);
   if (!detail) return {};
   const { product } = detail;
-  const description = truncate(product.short_description ?? product.description_en ?? product.title_en, 155);
-  return {
-    title: `${product.title_en} - Price in Bangladesh`,
-    description,
-    alternates: { canonical: `/products/${product.slug}` },
-    openGraph: {
-      title: product.title_en,
-      description,
-      type: "website",
-      url: `/products/${product.slug}`,
-      images: product.image ? [{ url: product.image.src, width: product.image.width, height: product.image.height, alt: product.image.alt }] : undefined,
-    },
-  };
+  return buildMetadata({
+    entityType: "product",
+    entityId: product.id,
+    path: `/products/${product.slug}`,
+    templateVars: { title: product.title_en },
+    fallbackDescription: product.short_description ?? product.description_en ?? product.title_en,
+    image: product.image ? { url: product.image.src, width: product.image.width, height: product.image.height, alt: product.image.alt } : null,
+    ogType: "product",
+  });
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -48,7 +47,6 @@ export default async function ProductPage({ params }: Props) {
   const [detail, settings] = await Promise.all([getProductBySlug(slug), getPublicSettings()]);
   if (!detail) notFound();
   const { product, variants, images, reviews, category, related, shipping } = detail;
-  const url = new URL(`/products/${product.slug}`, publicEnv.siteUrl).toString();
 
   // The main product image is the LCP element (BUILD_PROMPT §7.9): preload it from <head>
   // so it is not queued behind scripts. Matches the WebP srcset the gallery renders.
@@ -58,38 +56,14 @@ export default async function ProductPage({ params }: Props) {
     preload(lcp.src, { as: "image", fetchPriority: "high", imageSrcSet: lcp.webpSrcSet, imageSizes: "(min-width: 1024px) 50vw, 100vw" });
   }
   const crumbs = [...(category ? [{ label: category.name_en, href: `/category/${category.slug}` }] : []), { label: product.title_en, href: `/products/${product.slug}` }];
-
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title_en,
-    description: product.short_description ?? undefined,
-    image: images.map((i) => i.picture.src),
-    sku: variants[0]?.sku,
-    brand: product.brand_name ? { "@type": "Brand", name: product.brand_name } : undefined,
-    url,
-    ...(product.review_count > 0 && product.avg_rating
-      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.avg_rating, reviewCount: product.review_count, bestRating: 5, worstRating: 1 } }
-      : {}),
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "BDT",
-      lowPrice: Math.min(...variants.map((v) => v.price_bdt)),
-      highPrice: Math.max(...variants.map((v) => v.price_bdt)),
-      offerCount: variants.length,
-      availability: product.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      priceValidUntil: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10),
-      url,
-      seller: { "@type": "Organization", name: settings.store.name },
-    },
-  };
+  const defaultVariant = variants.find((v) => v.is_default) ?? variants[0];
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(publicEnv.siteUrl, crumbs)) }} />
+      <JsonLd data={[productJsonLd(detail, settings.store, { gtin: defaultVariant?.gtin, mpn: defaultVariant?.mpn }), breadcrumbJsonLd(publicEnv.siteUrl, crumbs)]} />
       <Breadcrumbs items={crumbs} />
       <RecentlyViewedTracker slug={product.slug} />
+      <TrackViewItem item={{ id: defaultVariant?.id ?? product.id, name: product.title_en, price_bdt: defaultVariant?.price_bdt ?? product.price_bdt, variant: defaultVariant?.option_value, brand: product.brand_name }} />
 
       <ProductPurchase
         productTitle={product.title_en}

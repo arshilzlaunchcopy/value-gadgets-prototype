@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { TrackBeginCheckout } from "@/components/analytics/trackers";
 import { CheckoutForm } from "@/components/store/checkout/checkout-form";
 import { getCurrentCustomer } from "@/lib/auth/session";
 import { getCartSummary } from "@/lib/cart/queries";
@@ -22,6 +23,7 @@ export default async function CheckoutPage() {
   return (
     <>
       <h1 className="mb-6 text-2xl font-semibold sm:text-3xl">Checkout</h1>
+      <TrackBeginCheckout items={cart.items.map((l) => ({ id: l.variant_id, name: l.title, price_bdt: l.unit_price_bdt, quantity: l.quantity, variant: l.variant_label }))} />
       <CheckoutForm initialCart={cart} customer={customer} savedAddresses={addresses} reservationProblems={reservation.problems} codAvailable={settings.delivery.cod_available} />
     </>
   );

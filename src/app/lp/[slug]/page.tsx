@@ -68,8 +68,8 @@ export default async function LandingPage({ params, searchParams }: Props) {
           {store.trade_license ? ` · Trade licence ${store.trade_license}` : ""}
         </p>
         <p className="mt-1 space-x-3">
-          <Link href="/policies/terms" className="underline">Terms</Link>
-          <Link href="/policies/refund" className="underline">Returns</Link>
+          <Link href="/pages/terms" className="underline">Terms</Link>
+          <Link href="/pages/refund" className="underline">Returns</Link>
           <Link href="/" className="underline">Full store</Link>
         </p>
         {publicEnv.demoMode && <p className="mt-1">Variant {variant.toUpperCase()}</p>}

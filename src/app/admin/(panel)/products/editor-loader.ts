@@ -39,7 +39,7 @@ export async function loadEditor(id: string | null): Promise<EditorData> {
       isNew: true,
       images: [],
       ...lookups,
-      product: { title_en: "", title_bn: "", slug: "", brand_id: null, short_description: "", description_en: "", description_bn: "", specs: [], highlights: [], status: "draft", is_featured: false, warranty_months: 0, video_url: "", variants: [{ sku: "", option_name: "", option_value: "", price_bdt: 0, compare_at_price_bdt: null, cost_bdt: null, stock_qty: 0, low_stock_threshold: 5, weight_grams: null, is_default: true }], category_ids: [], collection_ids: [], seo: { en: { ...emptySeo }, bn: { ...emptySeo } } },
+      product: { title_en: "", title_bn: "", slug: "", brand_id: null, short_description: "", description_en: "", description_bn: "", specs: [], highlights: [], status: "draft", is_featured: false, warranty_months: 0, video_url: "", variants: [{ sku: "", option_name: "", option_value: "", price_bdt: 0, compare_at_price_bdt: null, cost_bdt: null, stock_qty: 0, low_stock_threshold: 5, weight_grams: null, gtin: "", mpn: "", is_default: true }], category_ids: [], collection_ids: [], seo: { en: { ...emptySeo }, bn: { ...emptySeo } } },
     };
   }
 
@@ -70,7 +70,7 @@ export async function loadEditor(id: string | null): Promise<EditorData> {
       is_featured: p.is_featured,
       warranty_months: p.warranty_months,
       video_url: p.video_url ?? "",
-      variants: [...(p.product_variants ?? [])].sort((a, b) => a.position - b.position).map((v) => ({ id: v.id, sku: v.sku, option_name: v.option_name ?? "", option_value: v.option_value ?? "", price_bdt: v.price_bdt, compare_at_price_bdt: v.compare_at_price_bdt, cost_bdt: v.cost_bdt, stock_qty: v.stock_qty, low_stock_threshold: v.low_stock_threshold, weight_grams: v.weight_grams, is_default: v.is_default })),
+      variants: [...(p.product_variants ?? [])].sort((a, b) => a.position - b.position).map((v) => ({ id: v.id, sku: v.sku, option_name: v.option_name ?? "", option_value: v.option_value ?? "", price_bdt: v.price_bdt, compare_at_price_bdt: v.compare_at_price_bdt, cost_bdt: v.cost_bdt, stock_qty: v.stock_qty, low_stock_threshold: v.low_stock_threshold, weight_grams: v.weight_grams, gtin: v.gtin ?? "", mpn: v.mpn ?? "", is_default: v.is_default })),
       category_ids: (p.product_categories ?? []).map((c) => c.category_id),
       collection_ids: (p.collection_products ?? []).map((c) => c.collection_id),
       seo: { en: seoFor("en"), bn: seoFor("bn") },

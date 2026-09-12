@@ -12,6 +12,8 @@ export const variantSchema = z.object({
   stock_qty: z.number().int().min(0),
   low_stock_threshold: z.number().int().min(0).default(5),
   weight_grams: z.number().int().min(0).nullable().optional(),
+  gtin: z.string().trim().max(14).regex(/^\d*$/, "digits only").optional().or(z.literal("")),
+  mpn: z.string().trim().max(60).optional().or(z.literal("")),
   is_default: z.boolean().default(false),
 });
 

@@ -4,6 +4,7 @@ import { Minus, Plus, ShoppingBag, Zap } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { trackAddToCart } from "@/lib/analytics/events";
 import { addToCart, buyNow } from "@/lib/cart/actions";
 import type { VariantPublic } from "@/lib/catalog/queries";
 import { formatBDT } from "@/lib/format";
@@ -57,6 +58,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
     start(async () => {
       if (!variant) return;
       const r = await addToCart(variant.id, qty);
+      if (r.ok) trackAddToCart({ id: variant.id, name: productTitle, price_bdt: variant.price_bdt, quantity: qty, variant: variant.option_value });
       setCart(r.cart);
       if (r.ok) setOpen(true);
       else toast.error(r.message ?? "Could not add to cart");

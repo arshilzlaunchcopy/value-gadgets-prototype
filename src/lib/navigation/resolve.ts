@@ -11,7 +11,7 @@ export function resolveHref(linkType: LinkType | string, target: string | null |
     case "product":
       return t ? `/products/${t}` : "/";
     case "page":
-      return t ? `/policies/${t}` : "/";
+      return t ? `/pages/${t}` : "/";
     case "post":
       return t ? `/blog/${t}` : "/";
     case "search":

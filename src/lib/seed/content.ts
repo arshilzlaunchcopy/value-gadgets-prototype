@@ -40,7 +40,7 @@ export function homeBlocks() {
     { block_type: "product_carousel", settings: { title_en: "Eid offers", source: "on_sale", source_slug: "", product_slugs: [], limit: 8, layout: "carousel", view_all_href: "/collection/eid-offers" } },
     {
       block_type: "image_with_text",
-      settings: { image_url: img("anker-powerline-iii-usb-c-100w", 0), alt_text: "Anker PowerLine cable", image_side: "right", eyebrow_en: "Warranty", heading_en: "Every product ships with an official warranty", heading_bn: "প্রতিটি পণ্যে অফিসিয়াল ওয়ারেন্টি", text_en: "We register the warranty for you and handle claims within 3 working days. No running between shops.", cta_label_en: "Return & refund policy", cta_href: "/policies/refund", dark: true },
+      settings: { image_url: img("anker-powerline-iii-usb-c-100w", 0), alt_text: "Anker PowerLine cable", image_side: "right", eyebrow_en: "Warranty", heading_en: "Every product ships with an official warranty", heading_bn: "প্রতিটি পণ্যে অফিসিয়াল ওয়ারেন্টি", text_en: "We register the warranty for you and handle claims within 3 working days. No running between shops.", cta_label_en: "Return & refund policy", cta_href: "/pages/refund", dark: true },
     },
     { block_type: "product_carousel", settings: { title_en: "New arrivals", source: "newest", source_slug: "", product_slugs: [], limit: 8, layout: "carousel", view_all_href: "/collection/new-arrivals" } },
     {
@@ -111,11 +111,11 @@ export async function seedContent(): Promise<{ blocks: number; menus: number; it
   pos = 0;
   for (const [label, slug] of cats) items.push({ menu_id: menuId.get("footer_col_1"), label_en: label, link_type: "category", link_target: slug, position: pos++ });
   pos = 0;
-  for (const [label, target] of [["Track your order", "/track"], ["Your account", "/account"], ["Terms & conditions", "/policies/terms"], ["Privacy policy", "/policies/privacy"], ["Return & refund policy", "/policies/refund"]]) items.push({ menu_id: menuId.get("footer_col_2"), label_en: label, link_type: "url", link_target: target, position: pos++ });
+  for (const [label, target] of [["Track your order", "/track"], ["Your account", "/account"], ["Terms & conditions", "/pages/terms"], ["Privacy policy", "/pages/privacy"], ["Return & refund policy", "/pages/refund"]]) items.push({ menu_id: menuId.get("footer_col_2"), label_en: label, link_type: "url", link_target: target, position: pos++ });
   pos = 0;
   for (const [label, slug] of [["Best sellers", "best-sellers"], ["New arrivals", "new-arrivals"], ["Under ৳1,000", "under-1000"], ["Eid offers", "eid-offers"]]) items.push({ menu_id: menuId.get("footer_col_3"), label_en: label, link_type: "collection", link_target: slug, position: pos++ });
   pos = 0;
-  for (const [label, target] of [["About us", "/policies/terms"], ["Search", "/search"], ["Demo control panel", "/demo"]]) items.push({ menu_id: menuId.get("footer_col_4"), label_en: label, link_type: "url", link_target: target, position: pos++ });
+  for (const [label, target] of [["About us", "/pages/about"], ["Contact", "/pages/contact"], ["Blog", "/blog"], ["Search", "/search"], ["Demo control panel", "/demo"]]) items.push({ menu_id: menuId.get("footer_col_4"), label_en: label, link_type: "url", link_target: target, position: pos++ });
 
   // bulk insert needs identical keys on every row
   const normalized = items.map((i) => ({ parent_id: null, label_bn: null, icon: null, badge_label: null, badge_color: null, is_mega: false, mega_layout: null, opens_new_tab: false, ...i }));

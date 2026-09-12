@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { loadFraudConfig } from "@/lib/fraud/config";
+import { trackPurchaseServerSide } from "@/lib/integrations/analytics";
 import { getPayment } from "@/lib/integrations/payment";
 import { autoDispatch } from "@/lib/orders/auto-dispatch";
 import { notifyConfirmed } from "@/lib/orders/create";
@@ -101,6 +102,7 @@ export async function processIpn(raw: Record<string, unknown>): Promise<IpnOutco
     const { data: o } = await admin.from("orders").select("order_number, customer_phone, fraud_score, needs_review").eq("id", order.id).single();
     if (o) {
       await notifyConfirmed(order.id, o.order_number, order.total_bdt, o.customer_phone).catch((e) => console.warn("[ipn] confirmation SMS failed:", e));
+      await trackPurchaseServerSide(order.id);
       // PART2 §14.3: paid online + score below the review line -> auto-dispatch
       const { thresholds } = await loadFraudConfig();
       if (thresholds.auto_dispatch && !o.needs_review && (o.fraud_score ?? 0) < thresholds.review) await autoDispatch(order.id, `paid online, score ${o.fraud_score ?? 0}`);

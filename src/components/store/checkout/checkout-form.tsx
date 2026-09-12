@@ -168,8 +168,8 @@ export function CheckoutForm({ initialCart, customer: initialCustomer, savedAddr
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="accent-amber mt-1" />
                 <span>
-                  I agree to the <Link href="/policies/terms" className="underline" target="_blank">Terms</Link>, <Link href="/policies/privacy" className="underline" target="_blank">Privacy policy</Link> and{" "}
-                  <Link href="/policies/refund" className="underline" target="_blank">Return &amp; refund policy</Link>.
+                  I agree to the <Link href="/pages/terms" className="underline" target="_blank">Terms</Link>, <Link href="/pages/privacy" className="underline" target="_blank">Privacy policy</Link> and{" "}
+                  <Link href="/pages/refund" className="underline" target="_blank">Return &amp; refund policy</Link>.
                 </span>
               </label>
 

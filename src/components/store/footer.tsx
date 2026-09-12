@@ -19,7 +19,7 @@ export function Footer({ store, categories, footer, menus = {} }: FooterProps) {
   const f: FooterSettings = footer ?? { columns: [{ heading_en: "Shop", menu_handle: "footer_col_1" }, { heading_en: "Help", menu_handle: "footer_col_2" }], about_text_en: "", show_contact_block: true, trade_license: "", tin: "", payment_badge_images: [], show_newsletter: false, copyright_en: "© {year} {store}. All rights reserved." };
   const fallbackShop: NavItem[] = categories.filter((c) => !c.parent_id).map((c) => ({ id: c.id, label_en: c.name_en, label_bn: c.name_bn, href: `/category/${c.slug}`, icon: null, badge_label: null, badge_color: null, opens_new_tab: false, is_mega: false, mega: null, children: [] }));
   const fallbackHelp: NavItem[] = [
-    ["Track your order", "/track"], ["Your account", "/account"], ["Terms & conditions", "/policies/terms"], ["Privacy policy", "/policies/privacy"], ["Return & refund policy", "/policies/refund"],
+    ["Track your order", "/track"], ["Your account", "/account"], ["Terms & conditions", "/pages/terms"], ["Privacy policy", "/pages/privacy"], ["Return & refund policy", "/pages/refund"],
   ].map(([label, href], i) => ({ id: `h${i}`, label_en: label, label_bn: null, href, icon: null, badge_label: null, badge_color: null, opens_new_tab: false, is_mega: false, mega: null, children: [] }));
   const columns = f.columns.map((c, i) => ({ heading: c.heading_en, items: menus[c.menu_handle]?.length ? menus[c.menu_handle] : i === 0 ? fallbackShop : i === 1 ? fallbackHelp : [] })).filter((c) => c.items.length);
   const licence = f.trade_license || store.trade_license;

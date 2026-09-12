@@ -11,6 +11,7 @@ import { seedSettings } from "./settings";
 import { seedAdmin, seedContent } from "./content";
 import { seedFraud } from "./fraud";
 import { seedLandingPages } from "./landing";
+import { seedPages } from "./pages";
 
 export const ORDER_COUNT = 320;
 export const ORDER_DAYS = 120;
@@ -46,6 +47,7 @@ export async function seedAll(): Promise<SeedSummary> {
   await refreshCustomerCounters();
   await seedContent();
   await seedLandingPages();
+  await seedPages();
   await seedAdmin();
   const summary = { products: catalog.products.size, customers: customers.length, orders: count, reviews, ms: Date.now() - t0 };
   console.log(`[seed] done in ${summary.ms} ms`);
@@ -115,3 +117,4 @@ export { seedSettings } from "./settings";
 export { seedAdmin, seedContent } from "./content";
 export { seedFraud } from "./fraud";
 export { seedLandingPages } from "./landing";
+export { seedPages } from "./pages";

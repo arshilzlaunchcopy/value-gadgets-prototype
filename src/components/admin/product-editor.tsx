@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { textWidth } from "@/components/admin/serp-preview";
 import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/format";
 import { MediaPicker } from "./media-picker";
@@ -29,16 +30,6 @@ function Field({ label, hint, children, id }: { label: string; hint?: string; ch
       {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
     </div>
   );
-}
-
-/** Pixel-width estimate for the SERP preview (§7.2): warn instead of counting characters. */
-function textWidth(text: string, font: string): number {
-  if (typeof document === "undefined") return text.length * 7;
-  const c = (textWidth as unknown as { canvas?: HTMLCanvasElement }).canvas ?? ((textWidth as unknown as { canvas?: HTMLCanvasElement }).canvas = document.createElement("canvas"));
-  const ctx = c.getContext("2d");
-  if (!ctx) return text.length * 7;
-  ctx.font = font;
-  return ctx.measureText(text).width;
 }
 
 /** Product editor (§6.2): Details / Variants / Images / SEO / Organization. */
@@ -175,7 +166,7 @@ export function ProductEditor({ data }: { data: EditorData }) {
         <TabsContent value="variants" className="bg-paper space-y-3 rounded-2xl border p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground text-sm">Prices in whole taka. Cost is admin-only and never leaves this screen.</p>
-            <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={() => variants.append({ sku: "", option_name: variants.fields[0] ? watch("variants.0.option_name") : "Color", option_value: "", price_bdt: watch("variants.0.price_bdt") ?? 0, compare_at_price_bdt: null, cost_bdt: null, stock_qty: 0, low_stock_threshold: 5, weight_grams: null, is_default: false })}><Plus className="size-3.5" /> Variant</Button>
+            <Button type="button" size="sm" variant="outline" className="rounded-lg" onClick={() => variants.append({ sku: "", option_name: variants.fields[0] ? watch("variants.0.option_name") : "Color", option_value: "", price_bdt: watch("variants.0.price_bdt") ?? 0, compare_at_price_bdt: null, cost_bdt: null, stock_qty: 0, low_stock_threshold: 5, weight_grams: null, gtin: "", mpn: "", is_default: false })}><Plus className="size-3.5" /> Variant</Button>
           </div>
           <SortableList ids={variants.fields.map((f) => f.id)} onReorder={(f, t) => variants.move(f, t)}>
             <div className="space-y-2">
@@ -185,6 +176,8 @@ export function ProductEditor({ data }: { data: EditorData }) {
                     <div className="grid items-end gap-2 sm:grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto]">
                       <div className="pb-2">{handle}</div>
                       <Field label="SKU"><Input {...register(`variants.${i}.sku`)} className="rounded-lg font-mono text-xs" /></Field>
+                      <Field label="GTIN / barcode"><Input placeholder="13 digits" inputMode="numeric" {...register(`variants.${i}.gtin`)} className="rounded-lg font-mono text-xs" /></Field>
+                      <Field label="MPN"><Input placeholder="Manufacturer part no." {...register(`variants.${i}.mpn`)} className="rounded-lg text-xs" /></Field>
                       <Field label="Option"><Input placeholder="Color" {...register(`variants.${i}.option_name`)} className="rounded-lg" /></Field>
                       <Field label="Value"><Input placeholder="Black" {...register(`variants.${i}.option_value`)} className="rounded-lg" /></Field>
                       <Field label="Price ৳"><Input type="number" min={0} {...register(`variants.${i}.price_bdt`, { valueAsNumber: true })} className="rounded-lg" /></Field>

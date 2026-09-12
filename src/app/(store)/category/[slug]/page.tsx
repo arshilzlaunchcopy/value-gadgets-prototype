@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/store/breadcrumbs";
 import { ProductListing } from "@/components/store/product-listing";
 import { filtersToQuery, hasActiveFilters, parseListFilters, type SearchParams } from "@/lib/catalog/filters";
 import { getCategoryBySlug, getCategoryProducts, getNavCategories } from "@/lib/catalog/queries";
 import { staticParamsSafe } from "@/lib/build-safe";
 import { publicEnv } from "@/lib/env.public";
+import { itemListJsonLd } from "@/lib/seo/jsonld";
+import { buildMetadata } from "@/lib/seo/metadata";
 import { getStoreSettings } from "@/lib/settings";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<SearchParams> };
@@ -19,14 +22,20 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const cat = await getCategoryBySlug(slug);
   if (!cat) return {};
   const filters = parseListFilters(sp);
-  const filtered = hasActiveFilters(filters) || (filters.page ?? 1) > 1;
-  return {
-    title: `${cat.name_en} - Buy Online in Bangladesh`,
-    description: cat.description_en ?? `Shop ${cat.name_en.toLowerCase()} at ${store.name}. Genuine products, official warranty, cash on delivery across Bangladesh.`,
-    // filtered combinations canonicalise to the base category (BUILD_PROMPT §7.5)
-    alternates: { canonical: `/category/${cat.slug}${filtered && (filters.page ?? 1) > 1 && !hasActiveFilters(filters) ? filtersToQuery({ page: filters.page }) : ""}` },
-    robots: hasActiveFilters(filters) ? { index: false, follow: true } : undefined,
-  };
+  const filteredCombo = hasActiveFilters(filters);
+  const paged = (filters.page ?? 1) > 1;
+  // §7.5: filtered combinations canonicalise to the base category unless the admin
+  // marked this category's filters as worth indexing; plain pagination keeps its page.
+  const canonicalQuery = filteredCombo ? (cat.index_filters ? filtersToQuery(filters) : "") : paged ? filtersToQuery({ page: filters.page }) : "";
+  return buildMetadata({
+    entityType: "category",
+    entityId: cat.id,
+    path: `/category/${cat.slug}${canonicalQuery}`,
+    templateVars: { name: cat.name_en, title: cat.name_en },
+    fallbackDescription: cat.description_en ?? `Shop ${cat.name_en.toLowerCase()} at ${store.name}. Genuine products, official warranty, cash on delivery across Bangladesh.`,
+    image: cat.image_url ? { url: cat.image_url } : null,
+    noindex: filteredCombo && !cat.index_filters,
+  });
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
@@ -39,7 +48,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(publicEnv.siteUrl, crumbs)) }} />
+      <JsonLd data={[breadcrumbJsonLd(publicEnv.siteUrl, crumbs), itemListJsonLd(cat.name_en, `/category/${cat.slug}`, list.items)]} />
       <Breadcrumbs items={crumbs} />
       <header className="mb-6">
         <h1 className="text-2xl font-semibold sm:text-3xl">{cat.name_en}</h1>

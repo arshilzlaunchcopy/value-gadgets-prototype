@@ -10,6 +10,7 @@ import { districtServiced, loadFraudConfig, loadServiceArea } from "@/lib/fraud/
 import { getCachedCourierScore } from "@/lib/fraud/courier-score";
 import { calculateFraudScore, decideOrderPath } from "@/lib/fraud/score";
 import { autoDispatch } from "./auto-dispatch";
+import { trackPurchaseServerSide } from "@/lib/integrations/analytics";
 import { getPayment } from "@/lib/integrations/payment";
 import { getSms } from "@/lib/integrations/sms";
 import { toE164BD } from "@/lib/phone";
@@ -242,7 +243,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   // 7. notify / payment session / auto-dispatch (PART2 §14.3)
   let redirectUrl: string | undefined;
   if (input.paymentMethod === "cod") {
-    if (status === "confirmed") await notifyConfirmed(orderId, orderNumber, totals.total_bdt, phone);
+    if (status === "confirmed") {
+      await notifyConfirmed(orderId, orderNumber, totals.total_bdt, phone);
+      await trackPurchaseServerSide(orderId, { ip: input.ip, userAgent: input.userAgent });
+    }
     if (decision.autoDispatch) await autoDispatch(orderId, `COD auto-confirmed, score ${score}`);
   } else {
     const { data: order } = await admin.from("orders").select("*").eq("id", orderId).single();
