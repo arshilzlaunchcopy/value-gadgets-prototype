@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { tFor, type Locale } from "@/lib/i18n/messages";
 
-export function Pagination({ page, pageCount, hrefFor }: { page: number; pageCount: number; hrefFor: (p: number) => string }) {
+export function Pagination({ page, pageCount, hrefFor, locale = "en" }: { page: number; pageCount: number; hrefFor: (p: number) => string; locale?: Locale }) {
+  const t = tFor(locale);
   if (pageCount <= 1) return null;
   const pages = [...new Set([1, page - 1, page, page + 1, pageCount].filter((p) => p >= 1 && p <= pageCount))].sort((a, b) => a - b);
   return (
     <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-1">
       {page > 1 && (
         <Link rel="prev" href={hrefFor(page - 1)} className="hover:bg-accent rounded-lg border px-3 py-1.5 text-sm">
-          Previous
+          {t("catalog.prev")}
         </Link>
       )}
       {pages.map((p, i) => (
@@ -20,7 +22,7 @@ export function Pagination({ page, pageCount, hrefFor }: { page: number; pageCou
       ))}
       {page < pageCount && (
         <Link rel="next" href={hrefFor(page + 1)} className="hover:bg-accent rounded-lg border px-3 py-1.5 text-sm">
-          Next
+          {t("catalog.next")}
         </Link>
       )}
     </nav>

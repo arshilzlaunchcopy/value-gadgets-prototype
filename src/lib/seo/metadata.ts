@@ -36,7 +36,7 @@ export interface BuildMetadataInput {
   entityType: SeoEntityType;
   entityId: string | null;
   locale?: Locale;
-  /** canonical path, e.g. /products/slug */
+  /** canonical path in its English (unprefixed) form, e.g. /products/slug */
   path: string;
   /** values for the title template: title | name */
   templateVars: Record<string, string>;
@@ -50,20 +50,30 @@ export interface BuildMetadataInput {
   modifiedTime?: string | null;
 }
 
+/** hreflang set for a storefront path (PART2 §15.3): en unprefixed, bn under /bn, x-default = en. */
+export function languageAlternates(path: string): Record<string, string> {
+  const en = path;
+  const bn = path === "/" ? "/bn" : `/bn${path}`;
+  return { en, bn, "x-default": en };
+}
+
 /**
  * Fallback chain (BUILD_PROMPT §7.2): explicit seo_meta -> template -> site default.
+ * Bangla pages fall back to the English seo_meta row when no bn row exists.
  * Description auto-generates from the entity text truncated at 155 characters.
- * Self-referencing canonical on every page (§7.5).
+ * Self-referencing canonical on every page (§7.5), hreflang on both languages.
  */
 export async function buildMetadata(i: BuildMetadataInput): Promise<Metadata> {
   const locale = i.locale ?? "en";
-  const [seo, store, meta] = await Promise.all([getSeoSettings(), getStoreSettings(), getSeoMeta(i.entityType, i.entityId, locale)]);
+  const [seo, store, metaLocal, metaEn] = await Promise.all([getSeoSettings(), getStoreSettings(), getSeoMeta(i.entityType, i.entityId, locale), locale === "en" ? Promise.resolve(null) : getSeoMeta(i.entityType, i.entityId, "en")]);
+  const meta = metaLocal ?? metaEn;
   const vars = { store: store.name, ...i.templateVars };
   const template = { product: seo.title_template_product, category: seo.title_template_category, collection: seo.title_template_collection, post: seo.title_template_post, page: seo.title_template_page, home: "" }[i.entityType];
   const generatedTitle = i.entityType === "home" ? seo.home_title || `${store.name} - ${store.tagline}` : applyTemplate(template, vars);
-  const title = meta?.meta_title?.trim() || generatedTitle;
-  const description = meta?.meta_description?.trim() || (i.fallbackDescription ? truncate(i.fallbackDescription.replace(/\s+/g, " ").trim(), 155) : "") || seo.default_description || store.tagline;
-  const canonical = meta?.canonical_url?.trim() || i.path;
+  const title = metaLocal?.meta_title?.trim() || (locale === "en" ? meta?.meta_title?.trim() : "") || generatedTitle;
+  const description = metaLocal?.meta_description?.trim() || (locale === "en" ? meta?.meta_description?.trim() : "") || (i.fallbackDescription ? truncate(i.fallbackDescription.replace(/\s+/g, " ").trim(), 155) : "") || seo.default_description || store.tagline;
+  const localPath = locale === "bn" ? (i.path === "/" ? "/bn" : `/bn${i.path}`) : i.path;
+  const canonical = meta?.canonical_url?.trim() || localPath;
   const robotsStr = (meta?.robots ?? "index,follow").toLowerCase();
   const noindex = i.noindex || !seo.index_site || robotsStr.includes("noindex");
   const nofollow = robotsStr.includes("nofollow");
@@ -72,7 +82,7 @@ export async function buildMetadata(i: BuildMetadataInput): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: { canonical, languages: languageAlternates(i.path.split("?")[0]) },
     robots: { index: !noindex, follow: !nofollow, googleBot: { index: !noindex, follow: !nofollow, "max-image-preview": "large", "max-snippet": -1 } },
     openGraph: {
       title: meta?.og_title?.trim() || title,

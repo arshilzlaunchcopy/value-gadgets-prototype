@@ -3,11 +3,13 @@ import { Home, LayoutGrid, Menu, PackageSearch, Phone, Search, User } from "luci
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { CategorySummary } from "@/lib/catalog/queries";
+import { tFor, type Locale } from "@/lib/i18n/messages";
 import type { StoreSettings } from "@/lib/settings";
 import type { NavItem } from "@/lib/theme/get";
 import type { Announcement, HeaderSettings } from "@/lib/theme/schema";
 import { AnnouncementBar } from "./announcement-bar";
 import { CartButton } from "./cart/cart-button";
+import { LocaleSwitcher } from "./locale-switcher";
 import { SearchBox } from "./search-box";
 
 export interface HeaderProps {
@@ -17,6 +19,8 @@ export interface HeaderProps {
   announcement?: Announcement | null;
   mainMenu?: NavItem[];
   mobileMenu?: NavItem[];
+  locale?: Locale;
+  showSwitcher?: boolean;
 }
 
 export function Logo({ store, image, height = 36, className = "" }: { store: StoreSettings; image?: string; height?: number; className?: string }) {
@@ -50,8 +54,10 @@ function announcementActive(a: Announcement | null | undefined): a is Announceme
   return true;
 }
 
-/** Dark chrome header (BUILD_PROMPT §3) driven by theme settings + menus (PART2 §13.4). */
-export function Header({ store, categories, header, announcement, mainMenu, mobileMenu }: HeaderProps) {
+/** Dark chrome header (BUILD_PROMPT §3) driven by theme settings + menus (PART2 §13.4); labels follow the locale (§15.3). */
+export function Header({ store, categories, header, announcement, mainMenu, mobileMenu, locale = "en", showSwitcher = false }: HeaderProps) {
+  const t = tFor(locale);
+  const label = (i: { label_en: string; label_bn: string | null }) => (locale === "bn" && i.label_bn) || i.label_en;
   const h: HeaderSettings = header ?? { logo_image: "", logo_height: 36, mobile_logo_image: "", layout: "logo_left", sticky: true, transparent_over_hero: false, show_search: true, show_cart: true, show_track_order: true, show_phone: false, show_language_switcher: false, mobile_bottom_tab_bar: true };
   const main = mainMenu?.length ? mainMenu : categoriesAsMenu(categories);
   const mobile = mobileMenu?.length ? mobileMenu : main;
@@ -59,38 +65,43 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
 
   return (
     <>
-      {announcementActive(announcement) && <AnnouncementBar a={announcement} />}
+      {announcementActive(announcement) && <AnnouncementBar a={announcement} locale={locale} />}
       <header className={`bg-ink text-paper z-40 ${h.sticky ? "sticky top-0" : ""}`}>
         <div className={`mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 ${centered ? "justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]" : ""}`}>
           <div className="flex items-center gap-2">
             <Sheet>
-              <SheetTrigger className="hover:bg-ink-soft -ml-2 rounded-lg p-2 lg:hidden" aria-label="Open menu">
+              <SheetTrigger className="hover:bg-ink-soft -ml-2 rounded-lg p-2 lg:hidden" aria-label={t("nav.open_menu")}>
                 <Menu className="size-5" />
               </SheetTrigger>
               <SheetContent side="left" className="bg-ink text-paper border-ink-line w-[85vw] max-w-sm overflow-y-auto">
-                <SheetTitle className="text-paper">Menu</SheetTitle>
+                <SheetTitle className="text-paper">{t("nav.menu")}</SheetTitle>
                 <nav className="mt-4 flex flex-col" aria-label="Mobile">
                   {mobile.map((i) => (
                     <div key={i.id}>
                       <Link href={i.href} target={i.opens_new_tab ? "_blank" : undefined} className="hover:bg-ink-soft flex items-center justify-between rounded-lg px-3 py-2.5 text-sm">
-                        {i.label_en}
+                        {label(i)}
                         {i.badge_label && <span className="text-ink rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: i.badge_color || "#FFC107" }}>{i.badge_label}</span>}
                       </Link>
                       {i.children.map((c) => (
                         <Link key={c.id} href={c.href} className="text-paper/70 hover:bg-ink-soft block rounded-lg py-2 pr-3 pl-7 text-sm">
-                          {c.label_en}
+                          {label(c)}
                         </Link>
                       ))}
                     </div>
                   ))}
                   {h.show_track_order && (
                     <Link href="/track" className="hover:bg-ink-soft border-ink-line mt-2 rounded-lg border-t px-3 py-2.5 text-sm">
-                      Track order
+                      {t("nav.track")}
                     </Link>
                   )}
                   <Link href="/account" className="hover:bg-ink-soft rounded-lg px-3 py-2.5 text-sm">
-                    Account
+                    {t("nav.account")}
                   </Link>
+                  {showSwitcher && (
+                    <div className="px-3 py-3">
+                      <LocaleSwitcher locale={locale} />
+                    </div>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>
@@ -101,7 +112,7 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
 
           {h.show_search && !centered && (
             <div className="hidden flex-1 lg:block lg:px-6">
-              <SearchBox />
+              <SearchBox placeholder={t("search.placeholder")} />
             </div>
           )}
 
@@ -115,17 +126,17 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
             {h.show_track_order && (
               <Link href="/track" className="hover:bg-ink-soft hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm sm:flex">
                 <PackageSearch className="size-4" />
-                Track
+                {t("nav.track_short")}
               </Link>
             )}
-            {h.show_language_switcher && <span className="text-paper/60 hidden px-2 text-xs sm:inline">EN · বাং</span>}
+            {showSwitcher && <LocaleSwitcher locale={locale} className="hidden sm:inline-flex" />}
             {h.show_cart && <CartButton />}
           </div>
         </div>
 
         {h.show_search && (
           <div className={`px-4 pb-3 ${centered ? "lg:mx-auto lg:max-w-xl" : "lg:hidden"}`}>
-            <SearchBox />
+            <SearchBox placeholder={t("search.placeholder")} />
           </div>
         )}
 
@@ -134,7 +145,7 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
             {main.map((i) => (
               <li key={i.id} className="group relative">
                 <Link href={i.href} target={i.opens_new_tab ? "_blank" : undefined} className="hover:text-amber flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium">
-                  {i.label_en}
+                  {label(i)}
                   {i.badge_label && <span className="text-ink rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: i.badge_color || "#FFC107" }}>{i.badge_label}</span>}
                 </Link>
                 {i.is_mega && i.mega && (i.mega.columns.length > 0 || i.mega.featured) ? (
@@ -167,7 +178,7 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
                     {i.children.map((c) => (
                       <li key={c.id}>
                         <Link href={c.href} className="hover:bg-accent block px-3 py-1.5 text-sm">
-                          {c.label_en}
+                          {label(c)}
                         </Link>
                       </li>
                     ))}
@@ -182,15 +193,15 @@ export function Header({ store, categories, header, announcement, mainMenu, mobi
       {h.mobile_bottom_tab_bar && (
         <nav className="bg-ink text-paper border-ink-line fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t text-[11px] lg:hidden" aria-label="Quick tabs">
           {[
-            { href: "/", label: "Home", Icon: Home },
-            { href: mobile[0]?.href ?? "/", label: "Shop", Icon: LayoutGrid },
-            { href: "/search", label: "Search", Icon: Search },
-            { href: "/cart", label: "Cart", Icon: PackageSearch },
-            { href: "/account", label: "Account", Icon: User },
-          ].map((t) => (
-            <Link key={t.label} href={t.href} className="hover:text-amber flex flex-col items-center gap-0.5 py-2">
-              <t.Icon className="size-4" />
-              {t.label}
+            { href: "/", label: t("nav.home"), Icon: Home },
+            { href: mobile[0]?.href ?? "/", label: t("nav.shop"), Icon: LayoutGrid },
+            { href: "/search", label: t("nav.search"), Icon: Search },
+            { href: "/cart", label: t("nav.cart"), Icon: PackageSearch },
+            { href: "/account", label: t("nav.account"), Icon: User },
+          ].map((tab) => (
+            <Link key={tab.href} href={tab.href} className="hover:text-amber flex flex-col items-center gap-0.5 py-2">
+              <tab.Icon className="size-4" />
+              {tab.label}
             </Link>
           ))}
         </nav>

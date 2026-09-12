@@ -2,17 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { signOutAction } from "@/app/(store)/account/actions";
+import { signOutAction } from "@/app/[locale]/(store)/account/actions";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/provider";
 import { PhoneStep } from "./checkout/phone-step";
 
 export function AccountLogin() {
   const router = useRouter();
-  return <PhoneStep title="Sign in with your mobile number" onVerified={() => router.refresh()} />;
+  const t = useT();
+  return <PhoneStep title={t("account.hint")} onVerified={() => router.refresh()} />;
 }
 
 export function SignOutButton() {
   const router = useRouter();
+  const t = useT();
   const [pending, start] = useTransition();
   return (
     <Button
@@ -26,7 +29,7 @@ export function SignOutButton() {
         })
       }
     >
-      Sign out
+      {t("account.sign_out")}
     </Button>
   );
 }

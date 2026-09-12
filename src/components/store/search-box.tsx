@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useMoney, useT } from "@/lib/i18n/provider";
 
 interface Hit {
   slug: string;
@@ -13,8 +14,10 @@ interface Hit {
 }
 
 /** Instant search with debounce against /api/search; Enter goes to /search?q=. */
-export function SearchBox({ className = "", autoFocus = false }: { className?: string; autoFocus?: boolean }) {
+export function SearchBox({ className = "", autoFocus = false, placeholder }: { className?: string; autoFocus?: boolean; placeholder?: string }) {
   const router = useRouter();
+  const t = useT();
+  const { money } = useMoney();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [open, setOpen] = useState(false);
@@ -67,7 +70,7 @@ export function SearchBox({ className = "", autoFocus = false }: { className?: s
         }}
       >
         <label htmlFor="site-search" className="sr-only">
-          Search products
+          {t("search.placeholder")}
         </label>
         <input
           id="site-search"
@@ -77,11 +80,11 @@ export function SearchBox({ className = "", autoFocus = false }: { className?: s
           autoFocus={autoFocus}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => hits.length && setOpen(true)}
-          placeholder="Search hubs, cables, chargers…"
+          placeholder={placeholder ?? t("search.placeholder")}
           autoComplete="off"
           className="bg-paper text-ink focus:ring-amber w-full rounded-lg border-0 py-2 pr-10 pl-3 text-sm ring-1 ring-transparent outline-none focus:ring-2"
         />
-        <button type="submit" aria-label="Search" className="text-ink/60 hover:text-ink absolute top-1/2 right-1 -translate-y-1/2 p-2">
+        <button type="submit" aria-label={t("nav.search")} className="text-ink/60 hover:text-ink absolute top-1/2 right-1 -translate-y-1/2 p-2">
           <Search className="size-4" />
         </button>
       </form>
@@ -93,13 +96,13 @@ export function SearchBox({ className = "", autoFocus = false }: { className?: s
                 {/* eslint-disable-next-line @next/next/no-img-element -- tiny pre-generated thumbnail */}
                 {h.image ? <img src={h.image.src} alt="" width={40} height={40} className="size-10 rounded-lg object-cover" loading="lazy" /> : <span className="bg-paper-line size-10 rounded-lg" />}
                 <span className="line-clamp-1 flex-1">{h.title_en}</span>
-                <span className="price text-xs">৳{h.price_bdt.toLocaleString("en-IN")}</span>
+                <span className="price text-xs">{money(h.price_bdt)}</span>
               </Link>
             </li>
           ))}
           <li>
             <Link href={`/search?q=${encodeURIComponent(q.trim())}`} onClick={() => setOpen(false)} className="text-muted-foreground hover:bg-accent block px-3 py-2 text-xs">
-              See all results for &ldquo;{q.trim()}&rdquo;
+              {t("search.results_for", { q: q.trim() })}
             </Link>
           </li>
         </ul>

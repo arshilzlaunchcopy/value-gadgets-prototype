@@ -1,44 +1,48 @@
 import { BadgeCheck, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { ReviewPublic, ShippingEstimate } from "@/lib/catalog/queries";
-import { formatBDT, formatDate } from "@/lib/format";
+import { formatDateLocale } from "@/lib/i18n/format";
+import type { LocaleContext } from "@/lib/i18n/server";
 import { RatingStars } from "../rating-stars";
 
-export function TrustRow({ warrantyMonths, shipping, returnDays }: { warrantyMonths: number; shipping: ShippingEstimate[]; returnDays: number }) {
+type L = Pick<LocaleContext, "t" | "money" | "locale">;
+
+export function TrustRow({ warrantyMonths, shipping, returnDays, L }: { warrantyMonths: number; shipping: ShippingEstimate[]; returnDays: number; L: L }) {
+  const { t, money } = L;
   return (
     <ul className="grid gap-2 rounded-2xl border p-3 text-sm sm:grid-cols-3">
       <li className="flex items-start gap-2">
         <ShieldCheck className="text-amber-deep mt-0.5 size-4 shrink-0" />
         <span>
-          <span className="block font-medium">{warrantyMonths > 0 ? `${warrantyMonths}-month warranty` : "Checked before dispatch"}</span>
-          <span className="text-muted-foreground text-xs">Official brand warranty</span>
+          <span className="block font-medium">{warrantyMonths > 0 ? t("pdp.warranty_months", { n: warrantyMonths }) : t("pdp.warranty_checked")}</span>
+          <span className="text-muted-foreground text-xs">{t("pdp.warranty_sub")}</span>
         </span>
       </li>
       <li className="flex items-start gap-2">
         <Truck className="text-amber-deep mt-0.5 size-4 shrink-0" />
         <span>
-          <span className="block font-medium">Delivery</span>
+          <span className="block font-medium">{t("pdp.delivery")}</span>
           <span className="text-muted-foreground block text-xs">
-            {shipping.map((z) => `${z.zone}: ${z.estimated_days ?? "-"}, ${z.rate_bdt === 0 ? "free" : formatBDT(z.rate_bdt)}`).join(" · ")}
+            {shipping.map((z) => `${z.zone}: ${z.estimated_days ?? "-"}, ${z.rate_bdt === 0 ? t("pdp.free") : money(z.rate_bdt)}`).join(" · ")}
           </span>
         </span>
       </li>
       <li className="flex items-start gap-2">
         <RotateCcw className="text-amber-deep mt-0.5 size-4 shrink-0" />
         <span>
-          <span className="block font-medium">{returnDays}-day returns</span>
-          <span className="text-muted-foreground text-xs">Replacement on faults</span>
+          <span className="block font-medium">{t("pdp.returns", { n: returnDays })}</span>
+          <span className="text-muted-foreground text-xs">{t("pdp.returns_sub")}</span>
         </span>
       </li>
     </ul>
   );
 }
 
-export function SpecTable({ specs }: { specs: { label: string; value: string }[] }) {
+export function SpecTable({ specs, L }: { specs: { label: string; value: string }[]; L: L }) {
   if (specs.length === 0) return null;
   return (
     <section aria-labelledby="specs">
       <h2 id="specs" className="mb-3 text-lg font-semibold">
-        Specifications
+        {L.t("pdp.specs")}
       </h2>
       <div className="overflow-x-auto rounded-2xl border">
         <table className="w-full text-sm">
@@ -58,12 +62,12 @@ export function SpecTable({ specs }: { specs: { label: string; value: string }[]
   );
 }
 
-export function Highlights({ items }: { items: string[] }) {
+export function Highlights({ items, L }: { items: string[]; L: L }) {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="highlights">
       <h2 id="highlights" className="mb-3 text-lg font-semibold">
-        Highlights
+        {L.t("pdp.highlights")}
       </h2>
       <ul className="grid gap-2 sm:grid-cols-2">
         {items.map((h) => (
@@ -77,13 +81,13 @@ export function Highlights({ items }: { items: string[] }) {
   );
 }
 
-export function Description({ text }: { text: string | null }) {
+export function Description({ text, L }: { text: string | null; L: L }) {
   if (!text) return null;
   const blocks = text.split(/\n{2,}/);
   return (
     <section aria-labelledby="desc">
       <h2 id="desc" className="mb-3 text-lg font-semibold">
-        Description
+        {L.t("pdp.description")}
       </h2>
       <div className="space-y-3 text-sm leading-relaxed">
         {blocks.map((b, i) =>
@@ -102,17 +106,18 @@ export function Description({ text }: { text: string | null }) {
   );
 }
 
-export function Reviews({ reviews, avg, count }: { reviews: ReviewPublic[]; avg: number | null; count: number }) {
+export function Reviews({ reviews, avg, count, L }: { reviews: ReviewPublic[]; avg: number | null; count: number; L: L }) {
+  const { t } = L;
   return (
     <section aria-labelledby="reviews">
       <div className="mb-3 flex items-baseline gap-3">
         <h2 id="reviews" className="text-lg font-semibold">
-          Reviews
+          {t("pdp.reviews")}
         </h2>
-        <RatingStars rating={avg} count={count} />
+        <RatingStars rating={avg} count={count} emptyLabel={t("catalog.no_reviews")} />
       </div>
       {reviews.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No reviews yet. Verified buyers can review after delivery.</p>
+        <p className="text-muted-foreground text-sm">{t("pdp.reviews_empty")}</p>
       ) : (
         <ul className="space-y-3">
           {reviews.map((r) => (
@@ -122,16 +127,16 @@ export function Reviews({ reviews, avg, count }: { reviews: ReviewPublic[]; avg:
                 <span className="font-medium">{r.reviewer_name ?? "Customer"}</span>
                 {r.is_verified_purchase && (
                   <span className="bg-success/10 text-success-deep inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs">
-                    <BadgeCheck className="size-3" /> Verified purchase
+                    <BadgeCheck className="size-3" /> {t("pdp.verified")}
                   </span>
                 )}
-                <span className="text-muted-foreground ml-auto text-xs">{formatDate(r.created_at)}</span>
+                <span className="text-muted-foreground ml-auto text-xs">{formatDateLocale(r.created_at, L.locale)}</span>
               </div>
               {r.title && <p className="mt-2 font-semibold">{r.title}</p>}
               {r.body && <p className="mt-1">{r.body}</p>}
               {r.admin_reply && (
                 <p className="bg-paper-soft mt-3 rounded-lg p-3 text-xs">
-                  <span className="font-semibold">Store reply:</span> {r.admin_reply}
+                  <span className="font-semibold">{L.locale === "bn" ? "স্টোরের উত্তর:" : "Store reply:"}</span> {r.admin_reply}
                 </p>
               )}
             </li>

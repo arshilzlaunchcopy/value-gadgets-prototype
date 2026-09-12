@@ -1,17 +1,18 @@
 import Link from "next/link";
+import { t, type Locale } from "@/lib/i18n/messages";
 
 export interface Crumb {
   label: string;
   href?: string;
 }
 
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
+export function Breadcrumbs({ items, locale = "en" }: { items: Crumb[]; locale?: Locale }) {
   return (
     <nav aria-label="Breadcrumb" className="text-muted-foreground mb-4 text-xs sm:text-sm">
       <ol className="flex flex-wrap items-center gap-1">
         <li>
           <Link href="/" className="hover:text-foreground">
-            Home
+            {t(locale, "catalog.breadcrumb_home")}
           </Link>
         </li>
         {items.map((c, i) => (

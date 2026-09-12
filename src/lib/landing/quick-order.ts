@@ -42,7 +42,7 @@ export type QuickOrderOutcome =
  * score, courier score, stock, snapshots), only the cart is created server-side
  * for this one submission and never touches the visitor's cookie cart.
  */
-export async function submitQuickOrder(lp: LandingPagePublic, input: QuickOrderInput, meta: { ip: string | null; userAgent: string | null }, opts: { sessionPhone: string | null }): Promise<QuickOrderOutcome> {
+export async function submitQuickOrder(lp: LandingPagePublic, input: QuickOrderInput, meta: { ip: string | null; userAgent: string | null }, opts: { sessionPhone: string | null; locale?: "en" | "bn" }): Promise<QuickOrderOutcome> {
   const admin = createAdminClient();
   const phone = toE164BD(input.phone)!;
 
@@ -81,6 +81,7 @@ export async function submitQuickOrder(lp: LandingPagePublic, input: QuickOrderI
       source: "landing",
       landingPageId: lp.id || null,
       abVariant: lp.id ? (input.ab_variant as AbVariant) : null,
+      locale: opts.locale ?? "en",
     });
     return { ok: true, orderId: r.orderId, orderNumber: r.orderNumber, redirectUrl: r.redirectUrl ?? `/order/${r.orderNumber}/confirmation`, totalBdt: r.totalBdt };
   } catch (err) {

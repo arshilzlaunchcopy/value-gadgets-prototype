@@ -46,6 +46,8 @@ export interface PlaceOrderInput {
   source?: "web" | "landing" | "manual" | "api";
   landingPageId?: string | null;
   abVariant?: "a" | "b" | null;
+  /** language the order was placed in: SMS + invoice follow it (PART2 §15.3) */
+  locale?: "en" | "bn";
 }
 
 export interface PlaceOrderResult {
@@ -194,6 +196,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         source: input.source ?? "web",
         landing_page_id: input.landingPageId ?? null,
         ab_variant: input.abVariant ?? null,
+        locale: input.locale ?? "en",
       })
       .select("id")
       .single();
@@ -244,7 +247,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   let redirectUrl: string | undefined;
   if (input.paymentMethod === "cod") {
     if (status === "confirmed") {
-      await notifyConfirmed(orderId, orderNumber, totals.total_bdt, phone);
+      await notifyConfirmed(orderId, orderNumber, totals.total_bdt, phone, input.locale ?? "en");
       await trackPurchaseServerSide(orderId, { ip: input.ip, userAgent: input.userAgent });
     }
     if (decision.autoDispatch) await autoDispatch(orderId, `COD auto-confirmed, score ${score}`);
@@ -259,9 +262,15 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   return { orderId, orderNumber, status, paymentMethod: input.paymentMethod, totalBdt: totals.total_bdt, redirectUrl };
 }
 
-export async function notifyConfirmed(orderId: string, orderNumber: string, totalBdt: number, phone: string): Promise<void> {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/track?order=${orderNumber}`;
-  const message = await renderSms("order_confirmed", { order_number: orderNumber, total: totalBdt.toLocaleString("en-IN"), url });
+export async function notifyConfirmed(orderId: string, orderNumber: string, totalBdt: number, phone: string, locale?: "en" | "bn"): Promise<void> {
+  const admin = createAdminClient();
+  let lang: "en" | "bn" = locale ?? "en";
+  if (!locale) {
+    const { data } = await admin.from("orders").select("locale").eq("id", orderId).maybeSingle();
+    if (data?.locale === "bn") lang = "bn";
+  }
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${lang === "bn" ? "/bn" : ""}/track?order=${orderNumber}`;
+  const message = await renderSms("order_confirmed", { order_number: orderNumber, total: totalBdt.toLocaleString("en-IN"), url }, lang);
   const r = await getSms().send(phone, message, "order_confirmed");
   await appendOrderEvent(orderId, r.ok ? "sms_sent" : "sms_failed", { note: r.ok ? "Order confirmation SMS sent" : `SMS failed: ${r.error}`, metadata: { kind: "order_confirmed" } });
 }

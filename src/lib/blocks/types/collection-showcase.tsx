@@ -49,7 +49,7 @@ export default defineBlock<typeof schema, Data>({
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {products.map((p) => (
             <li key={p.id}>
-              <ProductCard product={p} />
+              <ProductCard product={p} locale={locale} />
             </li>
           ))}
         </ul>

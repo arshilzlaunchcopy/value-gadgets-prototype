@@ -28,7 +28,7 @@ export default defineBlock<typeof schema, ProductSummary[]>({
     return (
       <div>
         {title && <SectionHeading title={title} href={settings.view_all_href || undefined} />}
-        <ProductGrid products={data} eager={0} />
+        <ProductGrid products={data} eager={0} locale={locale} />
       </div>
     );
   },

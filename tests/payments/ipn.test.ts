@@ -58,13 +58,14 @@ describe("IPN validation", () => {
     expect(out.code).toBe(404);
   });
 
-  it("marks the order paid + confirmed for the honest payload, then ignores a duplicate", async () => {
+  it("marks the order paid + confirmed (then auto-dispatched) for the honest payload, then ignores a duplicate", async () => {
     const { payload } = await getMockPayment().recordOutcome(txnId, "success", "bkash");
     const first = await processIpn(payload);
     expect(first.result).toBe("paid");
     const state = await fx.paymentStatus();
     expect(state.payment_status).toBe("paid");
-    expect(state.status).toBe("confirmed");
+    // PART2 §14.3: paid online + score below the review line -> auto-confirm -> auto-dispatch
+    expect(["confirmed", "shipped"]).toContain(state.status);
 
     const again = await processIpn(payload);
     expect(again.result).toBe("already_processed");

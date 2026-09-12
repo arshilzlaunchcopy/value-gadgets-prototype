@@ -44,7 +44,7 @@ export interface RequestOtpResult {
   debugCode?: string;
 }
 
-export async function requestOtp(input: { phone: string; ip?: string | null; userAgent?: string | null }): Promise<RequestOtpResult> {
+export async function requestOtp(input: { phone: string; ip?: string | null; userAgent?: string | null; locale?: "en" | "bn" }): Promise<RequestOtpResult> {
   const phone = toE164BD(input.phone);
   if (!phone) return { ok: false, error: "Enter a valid Bangladeshi mobile number (01XXXXXXXXX)" };
   const admin = createAdminClient();
@@ -76,7 +76,7 @@ export async function requestOtp(input: { phone: string; ip?: string | null; use
     .single();
   if (error) return { ok: false, error: "Could not create a code. Please try again." };
 
-  const message = await renderSms("otp", { code, minutes: String(s.ttl_min) });
+  const message = await renderSms("otp", { code, minutes: String(s.ttl_min) }, input.locale ?? "en");
   const sent = await getSms().send(phone, message, "otp");
   if (!sent.ok) {
     await admin.from("otp_codes").delete().eq("id", row.id);
@@ -92,7 +92,7 @@ export interface VerifyOtpResult {
   isNew?: boolean;
 }
 
-export async function verifyOtp(input: { phone: string; code: string; cartId?: string | null }): Promise<VerifyOtpResult> {
+export async function verifyOtp(input: { phone: string; code: string; cartId?: string | null; locale?: "en" | "bn" }): Promise<VerifyOtpResult> {
   const phone = toE164BD(input.phone);
   const code = input.code.replace(/\D/g, "");
   if (!phone || code.length !== 6) return { ok: false, error: "Enter the 6-digit code" };
@@ -127,6 +127,7 @@ export async function verifyOtp(input: { phone: string; code: string; cartId?: s
   const { data: c } = await admin.from("customers").select("is_blocked, block_reason").eq("id", id).maybeSingle();
   if (c?.is_blocked) return { ok: false, error: "This number cannot place orders. Please contact support." };
   await signInAsPhone(phone, id);
+  if (input.locale) await admin.from("customers").update({ locale: input.locale }).eq("id", id); // SMS / invoice language (PART2 §15.3)
   if (input.cartId) await admin.from("carts").update({ customer_id: id }).eq("id", input.cartId); // cart merge (§8.5)
   return { ok: true, customerId: id, isNew: created };
 }

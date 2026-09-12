@@ -1,14 +1,15 @@
 import type { ProductSummary } from "@/lib/catalog/queries";
+import type { Locale } from "@/lib/i18n/messages";
 import { ProductCard } from "./product-card";
 
 /** First `eager` cards load eagerly (above the fold on mobile); the rest lazy. */
-export function ProductGrid({ products, eager = 4, emptyMessage = "No products found." }: { products: ProductSummary[]; eager?: number; emptyMessage?: string }) {
+export function ProductGrid({ products, eager = 4, emptyMessage = "No products found.", locale = "en" }: { products: ProductSummary[]; eager?: number; emptyMessage?: string; locale?: Locale }) {
   if (products.length === 0) return <p className="text-muted-foreground py-12 text-center">{emptyMessage}</p>;
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {products.map((p, i) => (
         <li key={p.id}>
-          <ProductCard product={p} priority={i < eager} />
+          <ProductCard product={p} priority={i < eager} locale={locale} />
         </li>
       ))}
     </ul>

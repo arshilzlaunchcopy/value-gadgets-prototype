@@ -69,9 +69,15 @@ async function pageEntries(): Promise<Entry[]> {
 
 const LOADERS: Record<SitemapName, () => Promise<Entry[]>> = { products: productEntries, categories: categoryEntries, collections: collectionEntries, posts: postEntries, pages: pageEntries };
 
+/** Each storefront URL exists in English (unprefixed) and Bangla (/bn/...), PART2 §15.3. */
+function withBangla(entries: Entry[]): Entry[] {
+  const base = absoluteUrl("/");
+  return entries.flatMap((e) => (e.loc.startsWith(`${base}lp/`) ? [e] : [e, { ...e, loc: e.loc === base ? `${base}bn` : e.loc.replace(base, `${base}bn/`) }]));
+}
+
 /** One named sitemap (chunk 1 = /sitemap-{name}.xml, chunk n = /sitemaps/{name}-{n}.xml). */
 export async function sitemapXml(name: SitemapName, chunk = 1): Promise<{ xml: string; found: boolean }> {
-  const entries = await LOADERS[name]();
+  const entries = withBangla(await LOADERS[name]());
   const start = (chunk - 1) * SITEMAP_CHUNK;
   const slice = entries.slice(start, start + SITEMAP_CHUNK);
   return { xml: urlset(slice), found: chunk === 1 || slice.length > 0 };
@@ -82,7 +88,7 @@ export async function sitemapIndexXml(): Promise<string> {
   const now = new Date().toISOString();
   const parts: string[] = [];
   for (const name of SITEMAP_NAMES) {
-    const count = (await LOADERS[name]()).length;
+    const count = (await LOADERS[name]()).length * 2;
     const chunks = Math.max(1, Math.ceil(count / SITEMAP_CHUNK));
     parts.push(`<sitemap><loc>${esc(absoluteUrl(`/sitemap-${name}.xml`))}</loc><lastmod>${now}</lastmod></sitemap>`);
     for (let c = 2; c <= chunks; c++) parts.push(`<sitemap><loc>${esc(absoluteUrl(`/sitemaps/${name}-${c}.xml`))}</loc><lastmod>${now}</lastmod></sitemap>`);

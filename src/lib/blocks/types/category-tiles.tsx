@@ -18,15 +18,15 @@ export default defineBlock<typeof schema, CategorySummary[]>({
   schema,
   defaults: { title_en: "", only_top_level: true, style: "pills" },
   loader: async (s) => (await getNavCategories()).filter((c) => !s.only_top_level || !c.parent_id),
-  component: ({ settings, data }) => (
+  component: ({ settings, data, locale }) => (
     <div>
       {settings.title_en ? <h2 className="mb-4 text-xl font-semibold sm:text-2xl">{settings.title_en}</h2> : <h2 className="sr-only">Categories</h2>}
       <ul className={`grid gap-3 ${settings.style === "cards" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-7"}`}>
         {(data ?? []).map((c) => (
           <li key={c.id}>
             <Link href={`/category/${c.slug}`} className={`bg-paper hover:ring-amber block rounded-2xl border text-center font-medium ring-2 ring-transparent transition ${settings.style === "cards" ? "p-6 text-base" : "p-3 text-sm"}`}>
-              {c.name_en}
-              {settings.style === "cards" && c.name_bn && (
+              {(locale === "bn" && c.name_bn) || c.name_en}
+              {settings.style === "cards" && locale === "en" && c.name_bn && (
                 <span lang="bn" className="text-muted-foreground mt-1 block text-xs font-normal">
                   {c.name_bn}
                 </span>

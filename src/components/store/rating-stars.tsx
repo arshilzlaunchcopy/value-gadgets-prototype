@@ -1,8 +1,8 @@
 import { Star } from "lucide-react";
 
-export function RatingStars({ rating, count, size = 14, showCount = true }: { rating: number | null; count?: number; size?: number; showCount?: boolean }) {
+export function RatingStars({ rating, count, size = 14, showCount = true, emptyLabel = "No reviews yet" }: { rating: number | null; count?: number; size?: number; showCount?: boolean; emptyLabel?: string }) {
   if (rating === null || rating === undefined || !count) {
-    return showCount ? <span className="text-muted-foreground text-xs">No reviews yet</span> : null;
+    return showCount ? <span className="text-muted-foreground text-xs">{emptyLabel}</span> : null;
   }
   const rounded = Math.round(rating * 2) / 2;
   return (

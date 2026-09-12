@@ -44,7 +44,7 @@ export default defineBlock<typeof schema, ProductSummary[]>({
           <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {data.map((p) => (
               <li key={p.id}>
-                <ProductCard product={p} />
+                <ProductCard product={p} locale={locale} />
               </li>
             ))}
           </ul>

@@ -298,6 +298,7 @@ export interface ShippingEstimate {
 export interface ProductDetail {
   product: ProductSummary & {
     description_en: string | null;
+    description_bn: string | null;
     short_description: string | null;
     specs: { label: string; value: string }[];
     highlights: string[];
@@ -358,6 +359,7 @@ export const getProductBySlug = unstable_cache(
       product: {
         ...toSummary(p as ProductRow),
         description_en: p.description_en,
+        description_bn: p.description_bn,
         short_description: p.short_description,
         specs: specsRaw.filter((s) => s && typeof s.label === "string").map((s) => ({ label: String(s.label), value: String(s.value ?? "") })),
         highlights: p.highlights ?? [],

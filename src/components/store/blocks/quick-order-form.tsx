@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { sendOtpAction, verifyOtpAction } from "@/app/(store)/checkout/actions";
+import { sendOtpAction, verifyOtpAction } from "@/app/[locale]/(store)/checkout/actions";
 import { quickOrderAction } from "@/app/lp/[slug]/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

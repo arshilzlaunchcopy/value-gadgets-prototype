@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { trackAddToCart } from "@/lib/analytics/events";
 import { addToCart, buyNow } from "@/lib/cart/actions";
 import type { VariantPublic } from "@/lib/catalog/queries";
-import { formatBDT } from "@/lib/format";
+import { useMoney, useT } from "@/lib/i18n/provider";
 import { restrictPicture, type PictureData } from "@/lib/media/picture";
 import { useCart } from "../cart/cart-provider";
 import { Picture } from "../picture";
@@ -34,6 +34,8 @@ interface Props {
  * island above the fold. The main image is the LCP element: eager + high priority.
  */
 export function ProductPurchase({ productTitle, images, variants, infoSlot, trustSlot }: Props) {
+  const t = useT();
+  const { money, number } = useMoney();
   const defaultVariant = variants.find((v) => v.is_default && v.available_qty > 0) ?? variants.find((v) => v.available_qty > 0) ?? variants[0];
   const [variantId, setVariantId] = useState<string>(defaultVariant?.id ?? "");
   const [qty, setQty] = useState(1);
@@ -61,7 +63,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
       if (r.ok) trackAddToCart({ id: variant.id, name: productTitle, price_bdt: variant.price_bdt, quantity: qty, variant: variant.option_value });
       setCart(r.cart);
       if (r.ok) setOpen(true);
-      else toast.error(r.message ?? "Could not add to cart");
+      else toast.error(r.message ?? t("misc.error"));
     });
 
   const buy = () =>
@@ -69,7 +71,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
       if (!variant) return;
       const r = await buyNow(variant.id, qty); // redirects on success
       setCart(r.cart);
-      if (!r.ok) toast.error(r.message ?? "Could not start checkout");
+      if (!r.ok) toast.error(r.message ?? t("misc.error"));
     });
 
   const main = images[activeImage] ?? images[0];
@@ -107,7 +109,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
         <div className="flex flex-wrap items-center gap-3">
           <Price price={variant?.price_bdt ?? 0} compareAt={variant?.compare_at_price_bdt} size="lg" />
           <DiscountBadge price={variant?.price_bdt ?? 0} compareAt={variant?.compare_at_price_bdt} />
-          {soldOut ? <span className="text-danger text-sm font-medium">Out of stock</span> : lowStock ? <span className="text-warn-deep text-sm font-medium">Only {available} left</span> : <span className="text-success-deep text-sm font-medium">In stock</span>}
+          {soldOut ? <span className="text-danger text-sm font-medium">{t("catalog.out_of_stock")}</span> : lowStock ? <span className="text-warn-deep text-sm font-medium">{t("pdp.only_left", { n: number(available) })}</span> : null}
         </div>
 
         {hasOptions && (
@@ -126,7 +128,7 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
                     className={`rounded-lg border px-3 py-1.5 text-sm ${v.id === variant?.id ? "border-ink bg-ink text-paper" : "bg-paper hover:border-ink"} ${out ? "cursor-not-allowed line-through opacity-50" : ""}`}
                   >
                     {v.option_value}
-                    {out && <span className="sr-only"> (out of stock)</span>}
+                    {out && <span className="sr-only"> ({t("catalog.out_of_stock")})</span>}
                   </button>
                 );
               })}
@@ -135,11 +137,11 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center rounded-lg border" role="group" aria-label="Quantity">
+          <div className="inline-flex items-center rounded-lg border" role="group" aria-label={t("pdp.qty")}>
             <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1 || soldOut} className="hover:bg-accent px-3 py-2 disabled:opacity-40" aria-label="Decrease quantity">
               <Minus className="size-4" />
             </button>
-            <span className="min-w-10 text-center tabular-nums">{qty}</span>
+            <span className="min-w-10 text-center tabular-nums">{number(qty)}</span>
             <button type="button" onClick={() => setQty((q) => Math.min(available, 10, q + 1))} disabled={soldOut || qty >= Math.min(available, 10)} className="hover:bg-accent px-3 py-2 disabled:opacity-40" aria-label="Increase quantity">
               <Plus className="size-4" />
             </button>
@@ -149,13 +151,13 @@ export function ProductPurchase({ productTitle, images, variants, infoSlot, trus
 
         <div className="grid gap-2 sm:grid-cols-2">
           <Button size="lg" onClick={buy} disabled={pending || soldOut || !variant} className="rounded-2xl">
-            <Zap className="size-4" /> Buy Now
+            <Zap className="size-4" /> {t("pdp.buy_now")}
           </Button>
           <Button size="lg" variant="outline" onClick={add} disabled={pending || soldOut || !variant} className="rounded-2xl">
-            <ShoppingBag className="size-4" /> Add to Cart
+            <ShoppingBag className="size-4" /> {t("pdp.add_to_cart")}
           </Button>
         </div>
-        {variant && qty > 1 && <p className="text-muted-foreground text-sm">Total: <span className="price">{formatBDT(variant.price_bdt * qty)}</span></p>}
+        {variant && qty > 1 && <p className="text-muted-foreground text-sm">{t("checkout.total")}: <span className="price">{money(variant.price_bdt * qty)}</span></p>}
 
         {trustSlot}
       </div>

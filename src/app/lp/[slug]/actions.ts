@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { getCurrentCustomer, requestMeta } from "@/lib/auth/session";
 import { LAST_ORDER_COOKIE } from "@/lib/checkout/schema";
+import { LOCALE_COOKIE } from "@/lib/i18n/messages";
 import { getLandingPage } from "@/lib/landing/queries";
 import { quickOrderSchema, submitQuickOrder, type QuickOrderOutcome } from "@/lib/landing/quick-order";
 
@@ -13,8 +14,8 @@ export async function quickOrderAction(raw: unknown): Promise<QuickOrderOutcome>
   const lp = parsed.data.landing_slug ? await getLandingPage(parsed.data.landing_slug) : null;
   // A quick_order_form outside a landing page (product/custom page) always asks for OTP.
   const page = lp ?? { id: "", slug: "", title: "", product_id: null, chrome: "minimal" as const, otp_mode: "always" as const, otp_threshold_bdt: 0, pixel_event: null, ab_enabled: false, variant_b_id: "", meta_title: null, meta_description: null, og_image_url: null, updated_at: "" };
-  const [meta, current] = await Promise.all([requestMeta(), getCurrentCustomer()]);
-  const r = await submitQuickOrder({ ...page, id: lp?.id ?? "" }, parsed.data, meta, { sessionPhone: current?.phone ?? null });
+  const [meta, current, jar] = await Promise.all([requestMeta(), getCurrentCustomer(), cookies()]);
+  const r = await submitQuickOrder({ ...page, id: lp?.id ?? "" }, parsed.data, meta, { sessionPhone: current?.phone ?? null, locale: jar.get(LOCALE_COOKIE)?.value === "bn" ? "bn" : "en" });
   if (r.ok) {
     const store = await cookies();
     store.set(LAST_ORDER_COOKIE, r.orderId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 });

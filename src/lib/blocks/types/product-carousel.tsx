@@ -34,7 +34,7 @@ export default defineBlock<typeof schema, ProductSummary[]>({
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             {data.map((p) => (
               <li key={p.id}>
-                <ProductCard product={p} />
+                <ProductCard product={p} locale={locale} />
               </li>
             ))}
           </ul>
@@ -42,7 +42,7 @@ export default defineBlock<typeof schema, ProductSummary[]>({
           <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]">
             {data.map((p) => (
               <li key={p.id} className="w-[46vw] shrink-0 snap-start sm:w-56 lg:w-64">
-                <ProductCard product={p} />
+                <ProductCard product={p} locale={locale} />
               </li>
             ))}
           </ul>

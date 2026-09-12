@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getHomeData, getNavCategories } from "@/lib/catalog/queries";
+import { tFor, type Locale } from "@/lib/i18n/messages";
 import { getPublicSettings } from "@/lib/settings";
 import { ProductGrid, SectionHeading } from "./product-grid";
 import { TrustStrip } from "./trust-strip";
 
 /** Rendered when no home-page blocks are published yet (before the seed / after a wipe). */
-export async function HomeFallback() {
+export async function HomeFallback({ locale = "en" }: { locale?: Locale }) {
+  const t = tFor(locale);
   const [{ hero, trust_badges, store }, categories, home] = await Promise.all([getPublicSettings(), getNavCategories(), getHomeData()]);
   const top = categories.filter((c) => !c.parent_id);
   return (
@@ -26,25 +28,25 @@ export async function HomeFallback() {
         </div>
       </section>
       <section aria-labelledby="cats">
-        <h2 id="cats" className="sr-only">Categories</h2>
+        <h2 id="cats" className="sr-only">{t("nav.categories")}</h2>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           {top.map((c) => (
             <li key={c.id}>
               <Link href={`/category/${c.slug}`} className="bg-paper hover:ring-amber block rounded-2xl border p-3 text-center text-sm font-medium ring-2 ring-transparent transition">
-                {c.name_en}
+                {(locale === "bn" && c.name_bn) || c.name_en}
               </Link>
             </li>
           ))}
         </ul>
       </section>
       <section>
-        <SectionHeading title="Featured" href="/collection/best-sellers" />
-        <ProductGrid products={home.featured} eager={4} />
+        <SectionHeading title={locale === "bn" ? "বাছাই করা" : "Featured"} href="/collection/best-sellers" hrefLabel={t("catalog.view_all")} />
+        <ProductGrid products={home.featured} eager={4} locale={locale} />
       </section>
       <TrustStrip badges={trust_badges} />
       <section>
-        <SectionHeading title="New arrivals" href="/collection/new-arrivals" />
-        <ProductGrid products={home.newest} eager={0} />
+        <SectionHeading title={locale === "bn" ? "নতুন পণ্য" : "New arrivals"} href="/collection/new-arrivals" hrefLabel={t("catalog.view_all")} />
+        <ProductGrid products={home.newest} eager={0} locale={locale} />
       </section>
     </div>
   );

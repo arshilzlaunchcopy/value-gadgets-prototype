@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/store/header";
 import { BlockRenderer } from "@/lib/blocks/render";
 import { publicEnv } from "@/lib/env.public";
+import { LOCALE_COOKIE } from "@/lib/i18n/messages";
 import { abCookieName, getLandingPage, type AbVariant } from "@/lib/landing/queries";
 import { getStoreSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -41,6 +42,7 @@ export default async function LandingPage({ params, searchParams }: Props) {
   const cookieVariant = jar.get(abCookieName(slug))?.value;
   const variant: AbVariant = !lp.ab_enabled ? "a" : (forced ?? (cookieVariant === "b" ? "b" : "a"));
   const targetId = variant === "b" ? lp.variant_b_id : lp.id;
+  const locale = jar.get(LOCALE_COOKIE)?.value === "bn" ? "bn" : "en";
   if (!forced) createAdminClient().rpc("increment_landing_view", { p_id: lp.id, p_variant: variant }).then(() => undefined, () => undefined);
 
   return (
@@ -60,7 +62,7 @@ export default async function LandingPage({ params, searchParams }: Props) {
       )}
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
         <h1 className="sr-only">{lp.title}</h1>
-        <BlockRenderer pageType="landing" targetId={targetId} fallback={<p className="text-muted-foreground py-16 text-center">This page has no content yet.</p>} />
+        <BlockRenderer pageType="landing" targetId={targetId} locale={locale} fallback={<p className="text-muted-foreground py-16 text-center">This page has no content yet.</p>} />
       </main>
       <footer className="text-muted-foreground mx-auto w-full max-w-4xl px-4 py-6 text-center text-xs">
         <p>
