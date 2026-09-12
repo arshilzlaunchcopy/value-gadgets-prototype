@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { DemoLauncher } from "@/components/demo/demo-launcher";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -28,8 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${notoBengali.variable}`}>
-      <body className="min-h-dvh flex flex-col">
+      <body className="flex min-h-dvh flex-col">
+        <DemoBanner />
         {children}
+        <DemoLauncher />
         <Toaster position="top-center" richColors />
       </body>
     </html>
