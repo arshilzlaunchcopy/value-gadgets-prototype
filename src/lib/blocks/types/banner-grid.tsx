@@ -7,7 +7,7 @@ const schema = z.object({
   banners: z
     .array(
       z.object({
-        image_url: z.string().url().describe("Banner image"),
+        image_url: z.string().url().or(z.literal("")).describe("Banner image"),
         alt_text: z.string().min(1).max(160),
         href: z.string().max(300).optional().or(z.literal("")),
         caption_en: z.string().max(80).optional().or(z.literal("")),

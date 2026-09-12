@@ -6,7 +6,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { adjustStockAction, STOCK_REASONS } from "./actions";
+import { STOCK_REASONS } from "@/lib/inventory/reasons";
+import { adjustStockAction } from "./actions";
 
 interface Line {
   variant_id: string;

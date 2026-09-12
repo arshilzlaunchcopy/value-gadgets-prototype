@@ -89,9 +89,9 @@ export function Dashboard() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="#E8E8E8" vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tick={{ fontSize: 11 }} minTickGap={24} />
+                    <XAxis dataKey="date" tickFormatter={(d: string) => String(d).slice(5, 10)} tick={{ fontSize: 11 }} minTickGap={24} />
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} width={40} />
-                    <Tooltip formatter={(v) => formatBDT(Number(v))} labelFormatter={(l) => String(l)} />
+                    <Tooltip formatter={(v) => formatBDT(Number(v))} labelFormatter={(l) => String(l).slice(0, 10)} />
                     <Area type="monotone" dataKey="revenue_bdt" name="Revenue" stroke="#E8A800" fill="url(#rev)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>

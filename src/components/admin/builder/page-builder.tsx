@@ -196,7 +196,7 @@ export function PageBuilder({ initial }: { initial: BuilderInitial }) {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[360px_1fr]">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
         {/* block list */}
         <aside className="bg-paper-soft flex min-h-0 flex-col border-r">
           <div className="flex items-center justify-between px-3 py-2">
@@ -247,7 +247,7 @@ export function PageBuilder({ initial }: { initial: BuilderInitial }) {
         </aside>
 
         {/* preview */}
-        <div className="bg-ink-line/20 flex min-h-0 items-start justify-center overflow-auto p-4">
+        <div className="bg-ink-line/20 flex min-h-0 min-w-0 items-start justify-center overflow-auto p-4">
           <iframe ref={iframeRef} title="Live preview" src={initial.previewUrl} style={{ width: WIDTHS[viewport], maxWidth: "100%" }} className="bg-paper h-full min-h-[70vh] rounded-xl border shadow-sm transition-[width]" />
         </div>
       </div>

@@ -37,13 +37,17 @@ export interface BlockMeta {
 }
 
 export function blockMeta(def: BlockDefinition): BlockMeta {
+  // A block author's defaults should satisfy the schema; if not, warn and fall back to the raw defaults
+  // rather than taking the whole admin down.
+  const parsed = def.schema.safeParse(def.defaults);
+  if (!parsed.success) console.warn(`[blocks] defaults for "${def.type}" do not satisfy its schema: ${parsed.error.issues[0]?.path.join(".")} ${parsed.error.issues[0]?.message}`);
   return {
     type: def.type,
     label: def.label,
     icon: def.icon,
     description: def.description,
     allowedOn: def.allowedOn,
-    defaults: def.schema.parse(def.defaults) as Record<string, unknown>,
+    defaults: (parsed.success ? parsed.data : def.defaults) as Record<string, unknown>,
     fields: schemaToFields(def.schema),
   };
 }

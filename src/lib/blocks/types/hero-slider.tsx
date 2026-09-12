@@ -6,7 +6,7 @@ export const heroSliderSchema = z.object({
   slides: z
     .array(
       z.object({
-        image_desktop: z.string().url().describe("Desktop image (1920x720)"),
+        image_desktop: z.string().url().or(z.literal("")).describe("Desktop image (1920x720)"),
         image_mobile: z.string().url().optional().or(z.literal("")).describe("Mobile image (750x900), optional"),
         alt_text: z.string().min(1).max(160),
         heading_en: z.string().max(120).optional().or(z.literal("")),

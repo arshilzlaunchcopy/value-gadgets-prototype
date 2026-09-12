@@ -2,7 +2,7 @@ import "server-only";
 
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ProductPayload } from "./actions";
+import type { ProductPayload } from "@/lib/products/schema";
 
 export interface EditorImage {
   id: string;

@@ -3,9 +3,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
+import { STOCK_REASONS } from "@/lib/inventory/reasons";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-export const STOCK_REASONS = ["received", "correction", "damaged", "return", "sample", "other"] as const;
 
 export async function adjustStockAction(lines: { variant_id: string; delta: number }[], reason: string, note?: string): Promise<{ ok: boolean; error?: string; message?: string }> {
   try {

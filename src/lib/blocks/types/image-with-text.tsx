@@ -4,7 +4,7 @@ import { z } from "zod";
 import { defineBlock } from "../define";
 
 const schema = z.object({
-  image_url: z.string().url().describe("Image (square or 4:3 works best)"),
+  image_url: z.string().url().or(z.literal("")).describe("Image (square or 4:3 works best)"),
   alt_text: z.string().min(1).max(160),
   image_side: z.enum(["left", "right"]).default("left"),
   eyebrow_en: z.string().max(40).optional().or(z.literal("")),
