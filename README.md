@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Value Gadgets BD - commerce platform prototype
 
-## Getting Started
+Next.js 15 storefront + admin CMS for a Bangladeshi tech-accessory retailer.
+Currently in **demo mode**: payments, SMS, courier and courier-score are mocked
+behind adapters. See `BUILD_PROMPT.md`, `BUILD_PROMPT_PART2.md`,
+`BUILD_PROMPT_PART3.md` and `PROTOTYPE_RUNBOOK.md` for the specification and
+`CLAUDE.md` for the working rules.
 
-First, run the development server:
+## Setup (no Supabase CLI, no Docker)
 
 ```bash
+npm install
+cp .env.example .env.local      # fill in the Supabase values
+npm run db:push                 # apply supabase/migrations/*.sql over Postgres
+npm run gen:types               # src/lib/database.types.ts via the Management API
+npm run seed:images             # placeholder product images through the image pipeline (once)
+npm run seed                    # catalog, 75 customers, 320 orders, 50 reviews (idempotent)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`DATABASE_URL` must point at the **session pooler** (`aws-0-<region>.pooler.supabase.com:5432`,
+user `postgres.<ref>`). The direct `db.<ref>.supabase.co` host is IPv6-only.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | What it does |
+|---|---|
+| `npm run db:push` | Apply pending migrations, tracked in `public._migrations`. `-- --dry-run` to list. |
+| `npm run db:new <name>` | Create `supabase/migrations/<timestamp>_<name>.sql` |
+| `npm run db:verify-rls` | Anon-key smoke test: locked tables return 0 rows, public views never expose `cost_bdt` |
+| `npm run gen:types` | Regenerate DB types (`-- --cli` shells out to `npx supabase` instead) |
+| `npm run seed` | Idempotent full seed. `-- --reset` (transactional only), `-- --reset-all`, `-- --orders 20` |
+| `npm run seed:images` | Render placeholder PNGs into `public/seed-images/`, ingest, write `src/lib/seed/data/images.generated.ts` |
+| `npm run images:ingest <dir>` | Bulk-ingest real photos (`<dir>/<product-slug>/1.jpg` or `<slug>__1.jpg`) |
 
-## Learn More
+## Demo mode
 
-To learn more about Next.js, take a look at the following resources:
+With `DEMO_MODE=true`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/demo` - control panel: force order transitions, run a full lifecycle, fire success / failed /
+  timeout / **tampered** IPNs at the real `/api/payment/ipn`, courier speed / outage / forced return,
+  fraud reference phones, SMS log, generate orders, shift the clock, reset.
+- `/demo/gateway?txn=...` - fake card / bKash / Nagad gateway. "Pay successfully" POSTs an
+  SSLCommerz-shaped IPN to the real handler over HTTP.
+- `POST /api/demo/reset`, `/api/demo/reset-all`, `/api/demo/generate-orders?n=20`,
+  `/api/demo/courier/tick` - gated by `Authorization: Bearer <DEMO_SEED_TOKEN>`.
+- A production build **fails** if `DEMO_MODE=true` on a Netlify production context that is not a
+  `*.netlify.app` domain (see `next.config.ts`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Keep-alive
 
-## Deploy on Vercel
+`.github/workflows/keepalive.yml` pings the DB every 3 days so the Supabase free tier does not pause.
+Set repository variable `SITE_URL` (deployed site) and/or secrets `SUPABASE_URL` + `SUPABASE_ANON_KEY`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Media
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Images are processed once at upload (`sharp`): EXIF stripped, AVIF + WebP at 320-1920px, a JPEG
+fallback, a 20px blur placeholder, content-hashed keys. Stored in Cloudflare R2 when the `R2_*`
+variables are set, otherwise in the Supabase Storage bucket `product-images` (with a warning).
+Render with `<ProductImage manifest={row.manifest} ... />`.
