@@ -2,8 +2,21 @@
   command = "npm run build"
   publish = ".next"
 
+# Build-time environment. Everything here is PUBLIC by design: the NEXT_PUBLIC_*
+# values are inlined into the browser bundle anyway, and the anon key is
+# protected by RLS. Secrets (SUPABASE_SERVICE_ROLE_KEY, AUTH_PEPPER,
+# DEMO_SEED_TOKEN, DEMO_ADMIN_PASSWORD, ...) are never committed; set them in
+# Netlify > Site configuration > Environment variables (all scopes).
 [build.environment]
   NODE_VERSION = "22"
+  NEXT_PUBLIC_SITE_URL = "https://value-gadgets-bd.netlify.app"
+  NEXT_PUBLIC_SUPABASE_URL = "https://jdbbjpzvishwlwxohjfz.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkYmJqcHp2aXNod2x3eG9oamZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNTQ3MzcsImV4cCI6MjEwNDczMDczN30.Sjkjfm1Ayp3CssPBMUBOlNQRplyOhVMS0LFEBlTjiaI"
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_wA7SC2I3EqquEFEb0ZHL8A_I5f1MbdH"
+  NEXT_PUBLIC_DEMO_MODE = "true"
+  DEMO_MODE = "true"
+  PHONE_EMAIL_DOMAIN = "phone.vgbd.local"
+  DEMO_ADMIN_EMAIL = "admin@valuegadgetsbd.com"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
